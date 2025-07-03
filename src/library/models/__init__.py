@@ -4,6 +4,7 @@ from src.library.models.library import Library
 from src.library.models.member import Member, LibrariesMembers
 from src.library.models.post import Post
 from src.library.models.category import Category
+from src.library.models.borrow import Borrow, LibraryRecord
 
 
 __all__ = [
@@ -13,5 +14,6 @@ __all__ = [
     "Category",
     "Library",
     "Member",
-    "LibrariesMembers"
+    "LibrariesMembers",
+    "Borrow", "LibraryRecord"
 ]
