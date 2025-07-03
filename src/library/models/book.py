@@ -59,6 +59,13 @@ class Book(models.Model):
         blank=True,
         related_name='books'
     )
+    category: models.ForeignKey = models.ForeignKey(
+        'Category',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='books'
+    )
 
     def __str__(self):
         return f"{self.title}({self.published_date})"
