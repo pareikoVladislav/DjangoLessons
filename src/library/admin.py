@@ -7,7 +7,9 @@ from src.library.models import (
     Category,
     Library,
     LibrariesMembers,
-    Member
+    Member,
+    Borrow,
+    LibraryRecord
 )
 
 admin.site.register(Book)
@@ -17,3 +19,5 @@ admin.site.register(Category)
 admin.site.register(Library)
 admin.site.register(Member)
 admin.site.register(LibrariesMembers)
+admin.site.register(Borrow)
+admin.site.register(LibraryRecord)
