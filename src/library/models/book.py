@@ -52,7 +52,13 @@ class Book(models.Model):
     published_date = models.DateField(
         auto_now_add=True,
     )
-
+    publisher: models.ForeignKey = models.ForeignKey(
+        'Publisher',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='books'
+    )
 
     def __str__(self):
         return f"{self.title}({self.published_date})"
