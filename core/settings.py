@@ -43,7 +43,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     # local
-    'src.first_app.apps.FirstAppConfig',
     'src.library.apps.LibraryConfig',
 ]
 
@@ -55,7 +54,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'src.first_app.middlewares.CustomMiddleware'
 ]
 
 ROOT_URLCONF = 'core.urls'
