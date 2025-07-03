@@ -26,11 +26,11 @@ class Role(str, Enum):
 
 class LibrariesMembers(models.Model):
     library = models.ForeignKey(
-        'Member',
+        'Library',
         on_delete=models.CASCADE
     )
     member = models.ForeignKey(
-        'Library',
+        'Member',
         on_delete=models.CASCADE
     )
 

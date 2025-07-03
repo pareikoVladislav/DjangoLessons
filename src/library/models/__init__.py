@@ -15,5 +15,6 @@ __all__ = [
     "Library",
     "Member",
     "LibrariesMembers",
-    "Borrow", "LibraryRecord"
+    "Borrow",
+    "LibraryRecord"
 ]

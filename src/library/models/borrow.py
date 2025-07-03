@@ -42,10 +42,3 @@ class LibraryRecord(models.Model):
     @property
     def is_completed(self):
         return all(borrow.is_returned for borrow in self.borrows)
-
-# Участник: связь с моделью Member
-# Книга: связь с моделью Book
-# Библиотека: связь с моделью Library
-# Дата взятия книги: когда читатель взял книгу
-# Дата возврата: когда книга должна быть возвращена
-# Вернул ли книгу: логическое поле
