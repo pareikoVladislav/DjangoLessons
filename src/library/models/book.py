@@ -67,6 +67,11 @@ class Book(models.Model):
         related_name='books'
     )
 
+    libraries= models.ManyToManyField(
+        "Library",
+        related_name='books',
+    )
+
     def __str__(self):
         return f"{self.title}({self.published_date})"
 

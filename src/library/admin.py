@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from src.library.models import Book, Post, UserProfile, Comment, Author, Publisher, Category
+from src.library.models import Book, Post, UserProfile, Comment, Author, Publisher, Category, Library
 
 admin.site.register(Book)
 admin.site.register(Post)
@@ -9,3 +9,4 @@ admin.site.register(Comment)
 admin.site.register(Author)
 admin.site.register(Publisher)
 admin.site.register(Category)
+admin.site.register(Library)
