@@ -53,7 +53,7 @@ class Book(models.Model):
         auto_now_add=True,
     )
     publisher: models.ForeignKey = models.ForeignKey(
-        'Publisher',
+        'Member',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -74,14 +74,3 @@ class Book(models.Model):
 
     def __str__(self):
         return f"{self.title}({self.published_date})"
-
-
-# Наш senior посмотрел на модель, что мы создали и предложил внести некоторые правки по улучшению модели.
-#
-# В модель Book добавьте дополнительные поля для большей информации о книге:
-#
-# Краткое описание: TextField, может быть пустым
-# Жанр: CharField, макс. длина 50, выборы из ['Fiction', 'Non-Fiction', 'Science Fiction', 'Fantasy', 'Mystery', 'Biography']
-# Кол-во страниц: может быть пустым, максимальное кол-во - 10000
-#
-# Примените изменения в модели, попробуйте создать записи, не указывая некоторые поля. Обратите внимание на то, как отрабатывает система.
