@@ -27,6 +27,10 @@ class Borrow(models.Model):
             return True
         return False
 
+    def __str__(self):
+        return f"Reader {self.book.title} - Book {self.library_record.member.last_name}"
+
+
 class LibraryRecord(models.Model):
     member: models.ForeignKey = models.ForeignKey(
         'Member',
@@ -43,3 +47,5 @@ class LibraryRecord(models.Model):
     def is_completed(self):
         return all(borrow.is_returned for borrow in self.borrows)
 
+    def __str__(self):
+        return f"{self.member.last_name} - {self.library.name}"

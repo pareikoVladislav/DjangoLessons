@@ -12,7 +12,32 @@ from src.library.models import (
     LibraryRecord
 )
 
-admin.site.register(Book)
+@admin.register(Book)
+class BookAdmin(admin.ModelAdmin):
+    list_display = [
+        'title',
+        'genre',
+        'pages',
+        'language',
+        'published_date',
+        'category'
+    ]
+
+    search_fields = [
+        'title',
+        'genre',
+        'category__title',
+        'publisher__last_name'
+    ]
+
+    list_filter = [
+        'genre',
+        'published_date',
+        'language'
+    ]
+
+
+# admin.site.register(Book, BookAdmin)
 admin.site.register(Post)
 admin.site.register(Author)
 admin.site.register(Category)
