@@ -42,3 +42,4 @@ class LibraryRecord(models.Model):
     @property
     def is_completed(self):
         return all(borrow.is_returned for borrow in self.borrows)
+
