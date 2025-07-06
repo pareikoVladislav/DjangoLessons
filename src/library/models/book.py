@@ -1,25 +1,7 @@
-from enum import Enum
 from django.core.validators import MaxValueValidator
 from django.db import models
 
-LAN_CHOICES = [
-    ('en', 'English'),
-    ('be', 'Belarusian'),
-    ('ru', 'Russian')
-]
-
-class Genre(str, Enum):
-    N_A = 'N/A'
-    FICTION = 'Fiction'
-    NON_FICTION = 'Non-Fiction'
-    SCIENCE_FICTION = 'Science Fiction'
-    FANTASY = 'Fantasy'
-    MYSTERY = 'Mystery'
-    BIOGRAPHY = 'Biography'
-
-    @classmethod
-    def choices(cls):
-        return [(i.name, i.value) for i in cls]
+from src.choices.base import Genre, Language
 
 
 class Book(models.Model):
@@ -35,25 +17,26 @@ class Book(models.Model):
         max_length=50,
         choices=Genre.choices(),
         default=Genre.N_A,
-        null=True,
-        blank=True
     )
     pages = models.PositiveSmallIntegerField(
         validators=[MaxValueValidator(1000)],
-        null=True,
-        blank=True
     )
     language = models.CharField(
         max_length=20,
-        choices=LAN_CHOICES,
-        # null=True,
-        default=LAN_CHOICES[0][0]
+        choices=Language.choices(),
+        default=Language.en
     )
     published_date = models.DateField(
         auto_now_add=True,
     )
     publisher: models.ForeignKey = models.ForeignKey(
-        'Member',
+        'users.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='books'
+    )
+    author: models.ForeignKey = models.ForeignKey(
+        'Author',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -62,9 +45,8 @@ class Book(models.Model):
     category: models.ForeignKey = models.ForeignKey(
         'Category',
         on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='books'
+        related_name='books',
+        null=True
     )
 
     libraries= models.ManyToManyField(

@@ -2,6 +2,7 @@ from django.utils import timezone
 
 from django.db import models
 
+
 class Borrow(models.Model):
     book: models.ForeignKey = models.ForeignKey(
         'Book',
@@ -33,7 +34,7 @@ class Borrow(models.Model):
 
 class LibraryRecord(models.Model):
     member: models.ForeignKey = models.ForeignKey(
-        'Member',
+        'users.User',
         on_delete=models.PROTECT,  # если пользователь что-то взял, то пока он не вернет, нельзя удалить))
         related_name='borrows'
     )
