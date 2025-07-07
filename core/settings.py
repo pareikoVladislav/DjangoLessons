@@ -44,6 +44,7 @@ INSTALLED_APPS = [
 
     # local
     'src.library.apps.LibraryConfig',
+    'src.users.apps.UsersConfig',
 ]
 
 MIDDLEWARE = [
@@ -57,6 +58,8 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'core.urls'
+
+AUTH_USER_MODEL = 'users.User'
 
 TEMPLATES = [
     {

@@ -1,9 +1,7 @@
-from datetime import datetime
+from uuid import uuid4
 
 from django.db import models
-from django.contrib.auth.models import User
-
-from uuid import uuid4
+from django.utils import timezone
 
 
 class Post(models.Model):
@@ -16,24 +14,19 @@ class Post(models.Model):
         max_length=255,
         unique_for_date="created_at",
     )
-    content: str = models.TextField(
-        null=True,
-        blank=True
-    )
+    content: str = models.TextField()
     author = models.ForeignKey(
-        'Member',
+        'users.User',
         on_delete=models.CASCADE,
         related_name='posts',
-        null=True,
-        blank=True
     )
     moderated = models.BooleanField(
         default=False,
     )
-    created_at: datetime = models.DateTimeField(
+    created_at: timezone = models.DateTimeField(
         auto_now_add=True
     )
-    updated_at: datetime = models.DateTimeField(
+    updated_at: timezone = models.DateTimeField(
         auto_now=True
     )
     library = models.ForeignKey(
@@ -41,4 +34,3 @@ class Post(models.Model):
         on_delete=models.CASCADE,
         related_name='posts'
     )
-
