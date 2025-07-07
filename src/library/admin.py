@@ -83,6 +83,12 @@ class BookAdmin(admin.ModelAdmin):
 
         return response
 
+    # def get_queryset(self, request):
+    #     Book.objects.filter(...).select_related(...).prefetch_related(...)
+    #
+    # def get_action(self, action):
+    #     ...
+
     @admin.action(description="Set genre to fiction")
     def set_genre_to_fiction(self, request, queryset):
         for obj in queryset:
