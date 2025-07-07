@@ -1,15 +1,7 @@
 from django.contrib import admin
 
-from src.library.models import (
-    Book,
-    Post,
-    Author,
-    Category,
-    Library,
-    LibrariesMembers,
-    Borrow,
-    LibraryRecord
-)
+from src.library.models import Book
+
 
 @admin.register(Book)
 class BookAdmin(admin.ModelAdmin):
@@ -40,30 +32,29 @@ class BookAdmin(admin.ModelAdmin):
     list_per_page = 10
     # list_max_show_all = 25
 
-    list_select_related = ['category',]
+    list_select_related = ['category', ]
 
     fieldsets = (
         (
             "Basic Information", {
-            "fields": ("title", "description", "genre")
-        }
+                "fields": ("title", "description", "genre")
+            }
         ),
         (
             "Publication Details", {
-            "fields": ("publisher", "pages", "language"),
-            "classes": ("collapse", )
-        }
+                "fields": ("publisher", "pages", "language"),
+                "classes": ("collapse",)
+            }
         ),
         (
             "Classification", {
-            "fields": ("category", "libraries"),
-            "classes": ("collapse", )
-        }
+                "fields": ("category", "libraries"),
+                "classes": ("collapse",)
+            }
         ),
     )
 
     actions = ['export_to_csv', 'set_genre_to_fiction']
-
 
     @admin.action(description="Export selected books to CSV")
     def export_to_csv(self, request, queryset):
@@ -78,7 +69,8 @@ class BookAdmin(admin.ModelAdmin):
 
         for book in queryset:
             writer.writerow([
-                book.title, book.genre or 'N/A', book.pages or 0, book.language, book.published_date, book.category.title
+                book.title, book.genre or 'N/A', book.pages or 0, book.language, book.published_date,
+                book.category.title
             ])
 
         return response
@@ -90,12 +82,3 @@ class BookAdmin(admin.ModelAdmin):
             obj.save()
 
         return request
-
-
-admin.site.register(Post)
-admin.site.register(Author)
-admin.site.register(Category)
-admin.site.register(Library)
-admin.site.register(LibrariesMembers)
-admin.site.register(Borrow)
-admin.site.register(LibraryRecord)
