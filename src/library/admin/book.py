@@ -1,15 +1,7 @@
 from django.contrib import admin
 
-from src.library.models import (
-    Book,
-    Post,
-    Author,
-    Category,
-    Library,
-    LibrariesMembers,
-    Borrow,
-    LibraryRecord
-)
+from src.library.models import Book
+
 
 @admin.register(Book)
 class BookAdmin(admin.ModelAdmin):
@@ -92,10 +84,4 @@ class BookAdmin(admin.ModelAdmin):
         return request
 
 
-admin.site.register(Post)
-admin.site.register(Author)
-admin.site.register(Category)
-admin.site.register(Library)
-admin.site.register(LibrariesMembers)
-admin.site.register(Borrow)
-admin.site.register(LibraryRecord)
+
