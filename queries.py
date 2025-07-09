@@ -6,7 +6,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 django.setup()
 
 # ИМПОРТЫ НАШЕГО ФУНКЦИОНАЛА ДОЛЖНЫ БЫТЬ СТРОГО ПОСЛЕ СИСТЕМНОЙ НАСТРОЙКИ ВЫШЕ
-from src.library.models import Book, Category, Author, Post
+from src.library.models import Book, Category, Author, Post, Borrow
 from src.users.models import User
 from src.choices.base import Genre
 
@@ -260,10 +260,22 @@ from django.db.models import Q, F
 # )
 
 
-req_obj = Book.objects.get(title='Test Book from ORM system')
+# req_obj = Book.objects.get(title='Test Book from ORM system')
+#
+# print(type(req_obj))
+#
+# deleted_obj = req_obj.delete()
+#
+# req_obj.save()
 
-print(type(req_obj))
 
-deleted_obj = req_obj.delete()
 
-req_obj.save()
+# добавить + 1 новое поле на дату возврата borrow (а то пока непонятно когда книга быа возвращена)
+
+
+last_borrow = Borrow.objects.last()
+
+
+print(last_borrow)
+
+print(last_borrow.is_overdue)

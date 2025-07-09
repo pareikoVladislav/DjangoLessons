@@ -24,7 +24,7 @@ class Borrow(models.Model):
 
     @property
     def is_overdue(self):
-        if self.return_date and not self.is_returned and timezone.now() > self.return_date:
+        if self.return_date and not self.is_returned and timezone.now().date() > self.return_date:
             return True
         return False
 
