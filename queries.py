@@ -6,7 +6,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 django.setup()
 
 # ИМПОРТЫ НАШЕГО ФУНКЦИОНАЛА ДОЛЖНЫ БЫТЬ СТРОГО ПОСЛЕ СИСТЕМНОЙ НАСТРОЙКИ ВЫШЕ
-from src.library.models import Book, Category, Author, Post, Borrow
+from src.library.models import Book, Category, Author, Post, Borrow, book
 from src.users.models import User
 from src.choices.base import Genre
 
@@ -273,9 +273,205 @@ from django.db.models import Q, F
 # добавить + 1 новое поле на дату возврата borrow (а то пока непонятно когда книга быа возвращена)
 
 
-last_borrow = Borrow.objects.last()
+# last_borrow = Borrow.objects.last()
+#
+#
+# print(last_borrow)
+#
+# print(last_borrow.is_overdue)
 
 
-print(last_borrow)
+# aggregate()
 
-print(last_borrow.is_overdue)
+from django.db.models import Avg, Min, Max, Count, Sum
+
+
+# aggregate_data = Book.objects.aggregate(
+#     total_books=Count('id'),
+#     avg_cost=Avg('price')
+# )
+#
+# print(aggregate_data)
+# print(f"Общее кол-во книг: {aggregate_data['total_books']}")
+# print(f"Средняя цена всех книг: {aggregate_data['avg_cost']}")
+
+
+# total_books_cost = Book.objects.aggregate(
+#     total_cost=Sum('price')
+# )
+#
+# print(f"Общая цена всех книг: {total_books_cost['total_cost']}")
+
+
+# books_count_by_author = Book.objects.values('author').annotate(
+#     books_count=Count('id')
+# )[10:20]
+#
+# print(books_count_by_author.query)
+#
+#
+# for obj in books_count_by_author:
+#     print(f"Автор : {obj['author']}, Количество его книг = {obj['books_count']}")
+
+
+
+# Получение книг с ценой выше средней
+
+
+# avg_price = Book.objects.aggregate(
+#     avg_price=Avg('price')
+# )['avg_price']
+#
+#
+# prim_query = Book.objects.filter(
+#     price__gt=avg_price
+# ).values('title', 'price', 'author')[:7]
+#
+#
+# print(prim_query.query)
+# print(prim_query)
+#
+# for obj in prim_query:
+#     print(f"{obj['title']}   ---   {obj['price']}   ---   {obj['author']}")
+
+
+# avg_price = Book.objects.aggregate(
+#     avg_price=Avg('price')
+# )
+#
+# # print(avg_price.query)
+# print(avg_price)
+
+
+from django.db.models import OuterRef, Subquery, DecimalField
+
+# sub_query = Book.objects.filter(
+#     author=OuterRef('author')).values('author').annotate(
+#     min_price=Min('price')
+# ).values('min_price') # U0
+#
+#
+# primary_query = Book.objects.annotate( # Book.objects.all() => SELECT *
+#     min_price=Subquery(
+#         sub_query,
+#         output_field=DecimalField(max_digits=6, decimal_places=2)
+#     )
+# )
+#
+# print(primary_query.query)
+#
+#
+# for obj in primary_query:
+#     print(obj)
+
+#
+# from django.db.models import Case, When, F
+#
+# authors_problematic_query = Author.objects.annotate(
+#     performance_score=Case(
+#         When(books__price__gt=100, then=F('books__price') * 2),
+#         When(books__price__gt=50, then=F('books__price') * 1.5),
+#         default=F('books__price')
+#     )
+# )
+#
+# print(authors_problematic_query.query)
+#
+#
+# for a in authors_problematic_query[:3]:
+#     print(f"Автор: {a.first_name} {a.last_name}")
+#     print(f"Рейтинг производительности автора: {a.performance_score}")
+#     print(f"Тип результата: {type(a.performance_score)}")
+
+
+# from decimal import Decimal
+#
+#
+# a = Decimal('22.17')
+#
+# b = 3.14
+#
+# print(a * b)
+
+
+
+# from django.db.models import Case, When, F, ExpressionWrapper, Value
+#
+# authors_problematic_query = Author.objects.annotate(
+#     performance_score=Case(
+#         When(
+#             books__price__gt=100,
+#             then=ExpressionWrapper(F('books__price') * 2.0,
+#                                    output_field=DecimalField())
+#         ),
+#         When(
+#             books__price__gt=50,
+#             then=ExpressionWrapper(
+#                 F('books__price') * 1.5,
+#                 output_field=DecimalField()
+#             )
+#         ),
+#         default=F('books__price')
+#     )
+# )
+#
+# print(authors_problematic_query.query)
+#
+#
+# for a in authors_problematic_query[:3]:
+#     print(f"Автор: {a.first_name} {a.last_name}")
+#     print(f"Рейтинг производительности автора: {a.performance_score}")
+#     print(f"Тип результата: {type(a.performance_score)}")
+
+
+from rest_framework import serializers
+
+
+class CustomSerializerClass(serializers.Serializer):
+    name = serializers.CharField(max_length=30)
+    age = serializers.IntegerField(min_value=0)
+    is_active = serializers.BooleanField()
+    created_at = serializers.DateTimeField()
+#
+#
+#
+# data = CustomSerializerClass(
+#     data={
+#         'name': 'John',
+#         'age': 2,
+#         'is_active': True,
+#         'created_at': '2021-01-01T00:00:00Z'
+#     }
+# )
+#
+# print(data)
+# print(data.initial_data)
+#
+# if data.is_valid():
+#     print(data.validated_data)
+#
+# else:
+#     print(data.errors)
+
+
+# class CategorySerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Category
+#         fields = ('title',)
+#
+#
+# new_category = CategorySerializer(
+#     data={
+#         "title": "+" * 35
+#     }
+# )
+#
+# print(new_category)
+#
+# try:
+#     new_category.is_valid(raise_exception=True)
+#
+#     print("DATA IS VALID!!!!")
+#     print(new_category.validated_data)
+# except serializers.ValidationError as e:
+#     print(e)
