@@ -48,6 +48,16 @@ class Book(models.Model):
         related_name='books',
         null=True
     )
+    price = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        default=0.0
+    )
+    discounted_price = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        default=0.0
+    )
 
     libraries= models.ManyToManyField(
         "Library",
