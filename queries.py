@@ -345,21 +345,133 @@ from django.db.models import Avg, Min, Max, Count, Sum
 
 from django.db.models import OuterRef, Subquery, DecimalField
 
-sub_query = Book.objects.filter(
-    author=OuterRef('author')).values('author').annotate(
-    min_price=Min('price')
-).values('min_price') # U0
+# sub_query = Book.objects.filter(
+#     author=OuterRef('author')).values('author').annotate(
+#     min_price=Min('price')
+# ).values('min_price') # U0
+#
+#
+# primary_query = Book.objects.annotate( # Book.objects.all() => SELECT *
+#     min_price=Subquery(
+#         sub_query,
+#         output_field=DecimalField(max_digits=6, decimal_places=2)
+#     )
+# )
+#
+# print(primary_query.query)
+#
+#
+# for obj in primary_query:
+#     print(obj)
+
+#
+# from django.db.models import Case, When, F
+#
+# authors_problematic_query = Author.objects.annotate(
+#     performance_score=Case(
+#         When(books__price__gt=100, then=F('books__price') * 2),
+#         When(books__price__gt=50, then=F('books__price') * 1.5),
+#         default=F('books__price')
+#     )
+# )
+#
+# print(authors_problematic_query.query)
+#
+#
+# for a in authors_problematic_query[:3]:
+#     print(f"Автор: {a.first_name} {a.last_name}")
+#     print(f"Рейтинг производительности автора: {a.performance_score}")
+#     print(f"Тип результата: {type(a.performance_score)}")
 
 
-primary_query = Book.objects.annotate( # Book.objects.all() => SELECT *
-    min_price=Subquery(
-        sub_query,
-        output_field=DecimalField(max_digits=6, decimal_places=2)
-    )
-)
+# from decimal import Decimal
+#
+#
+# a = Decimal('22.17')
+#
+# b = 3.14
+#
+# print(a * b)
 
-print(primary_query.query)
 
 
-for obj in primary_query:
-    print(obj)
+# from django.db.models import Case, When, F, ExpressionWrapper, Value
+#
+# authors_problematic_query = Author.objects.annotate(
+#     performance_score=Case(
+#         When(
+#             books__price__gt=100,
+#             then=ExpressionWrapper(F('books__price') * 2.0,
+#                                    output_field=DecimalField())
+#         ),
+#         When(
+#             books__price__gt=50,
+#             then=ExpressionWrapper(
+#                 F('books__price') * 1.5,
+#                 output_field=DecimalField()
+#             )
+#         ),
+#         default=F('books__price')
+#     )
+# )
+#
+# print(authors_problematic_query.query)
+#
+#
+# for a in authors_problematic_query[:3]:
+#     print(f"Автор: {a.first_name} {a.last_name}")
+#     print(f"Рейтинг производительности автора: {a.performance_score}")
+#     print(f"Тип результата: {type(a.performance_score)}")
+
+
+from rest_framework import serializers
+
+
+class CustomSerializerClass(serializers.Serializer):
+    name = serializers.CharField(max_length=30)
+    age = serializers.IntegerField(min_value=0)
+    is_active = serializers.BooleanField()
+    created_at = serializers.DateTimeField()
+#
+#
+#
+# data = CustomSerializerClass(
+#     data={
+#         'name': 'John',
+#         'age': 2,
+#         'is_active': True,
+#         'created_at': '2021-01-01T00:00:00Z'
+#     }
+# )
+#
+# print(data)
+# print(data.initial_data)
+#
+# if data.is_valid():
+#     print(data.validated_data)
+#
+# else:
+#     print(data.errors)
+
+
+# class CategorySerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Category
+#         fields = ('title',)
+#
+#
+# new_category = CategorySerializer(
+#     data={
+#         "title": "+" * 35
+#     }
+# )
+#
+# print(new_category)
+#
+# try:
+#     new_category.is_valid(raise_exception=True)
+#
+#     print("DATA IS VALID!!!!")
+#     print(new_category.validated_data)
+# except serializers.ValidationError as e:
+#     print(e)
