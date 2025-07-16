@@ -5,3 +5,4 @@ mysqlclient==2.2.7
 pillow==11.3.0
 pkgconfig==1.5.5
 sqlparse==0.5.3
+djangorestframework==3.16.0
