@@ -1,18 +1,12 @@
 from django.urls import path
 
 from src.library.views.book import (
-    get_all_books,
-    get_book_by_id,
-    create_book,
-    update_book,
-    delete_book
+    BookListCreateAPIView,
+    BookRetrieveUpdateDestroyAPIView
 )
 
 
 urlpatterns = [
-    path('', get_all_books),
-    path('create/', create_book),
-    path('<int:book_id>', get_book_by_id),
-    path('<int:book_id>/update', update_book),
-    path('<int:book_id>/delete', delete_book),
+    path('', BookListCreateAPIView.as_view()),
+    path('<int:book_id>', BookRetrieveUpdateDestroyAPIView.as_view()),
 ]
