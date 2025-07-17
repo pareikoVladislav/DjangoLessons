@@ -29,6 +29,16 @@ class Language(str, Enum):
     def choices(cls):
         return [(attr.name, attr.value) for attr in cls]
 
+    @classmethod
+    def get_attr_by_value(cls, value: str):
+        for attr in cls:
+            if attr.value == value:
+                return attr.name
+
+    @classmethod
+    def get_available_values(cls):
+        return [attr.value for attr in cls]
+
 
 class Genre(str, Enum):
     N_A = 'N/A'
@@ -42,3 +52,13 @@ class Genre(str, Enum):
     @classmethod
     def choices(cls):
         return [(i.name, i.value) for i in cls]
+
+    @classmethod
+    def get_attr_by_value(cls, value: str):
+        for attr in cls:
+            if attr.value == value:
+                return attr.name
+
+    @classmethod
+    def get_available_values(cls):
+        return [attr.value for attr in cls]
