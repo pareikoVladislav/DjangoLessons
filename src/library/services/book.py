@@ -66,8 +66,8 @@ class BookService:
             )
 
         try:
-            validated_data = create_serializer.validated_data
-            created_book = self.book_repo.create(**validated_data)
+
+            created_book = create_serializer.save() # create()
             response_serializer = BookDetailedDTO(created_book)
 
             return ServiceResponse(
