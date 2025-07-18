@@ -15,6 +15,7 @@ class BookListDTO(serializers.ModelSerializer):
             'id',
             'title',
             'genre',
+            'price',
             'language',
             'published_date',
             'author',

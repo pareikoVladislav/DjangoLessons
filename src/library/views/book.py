@@ -13,7 +13,9 @@ class BookListCreateAPIView(APIView):
     books_service = BookService()
 
     def get(self, request: Request) -> Response:
-        result = self.books_service.get_all_books()
+        query_params = request.query_params
+
+        result = self.books_service.get_all_books(request, query_params)
 
         if result.success:
             return Response(
