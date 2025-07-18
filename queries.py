@@ -395,7 +395,7 @@ from django.db.models import OuterRef, Subquery, DecimalField
 
 
 
-from django.db.models import Case, When, F, ExpressionWrapper, Value, CharField
+# from django.db.models import Case, When, F, ExpressionWrapper, Value
 #
 # authors_problematic_query = Author.objects.annotate(
 #     performance_score=Case(
@@ -476,7 +476,159 @@ class CustomSerializerClass(serializers.Serializer):
 # except serializers.ValidationError as e:
 #     print(e)
 
-# # ### **Задача 1: Общее количество книг и их средняя цена**
+
+
+# books = Book.objects.filter(
+#     published_date__year__gt=2023
+# )
+#
+# print(books)
+#
+# for b in books:
+#     print(b.published_date)
+
+
+# from django.db.models.functions import ExtractYear
+# from django.db.models import Count
+#
+# books_by_year = Book.objects.annotate(
+#     pub_year=ExtractYear('published_date')
+# ).values('pub_year').annotate(
+#     count_ob_books=Count('id')
+# ).order_by('pub_year')
+#
+#
+#
+# for obj in books_by_year:
+#     print(obj['pub_year'], obj['count_ob_books'])
+
+
+# from django.db.models.functions import ExtractMonth
+# from django.db.models import Count
+#
+# books_by_month = Book.objects.annotate(
+#     pub_month=ExtractMonth('published_date')
+# ).values('pub_month').annotate(
+#     count_ob_books=Count('id')
+# ).order_by('pub_month')
+#
+#
+#
+# for obj in books_by_month:
+#     print(obj['pub_month'], obj['count_ob_books'])
+#
+#
+#
+# jan_books = Book.objects.annotate(
+#     pub_month=ExtractMonth('published_date')
+# ).filter(pub_month=1)
+#
+# print(jan_books)
+
+
+
+# from django.db.models.functions import ExtractMonth
+# from django.db.models import Count, Case, When, CharField, Value
+# from django.utils.translation import gettext_lazy as _
+#
+#
+# books_by_month = Book.objects.annotate(
+#     pub_month=ExtractMonth('published_date'),
+#     pub_month_name=Case(
+#         When(pub_month=1, then='January'),
+#         When(pub_month=2, then='February'),
+#         When(pub_month=3, then='March'),
+#         When(pub_month=4, then='April'),
+#         When(pub_month=5, then='May'),
+#         When(pub_month=6, then='June'),
+#         When(pub_month=7, then='July'),
+#         When(pub_month=8, then='August'),
+#         When(pub_month=9, then='September'),
+#         When(pub_month=10, then='October'),
+#         When(pub_month=11, then='November'),
+#         When(pub_month=12, then='December'),
+#         output_field=CharField()
+#     )
+# ).values('pub_month_name').annotate(
+#     count_ob_books=Count('id')
+# )
+#
+#
+# for obj in books_by_month:
+#     print(obj['pub_month_name'], obj['count_ob_books'])
+
+# books = Book.objects.raw(
+#     """
+#     SELECT * FROM books_book
+#     WHERE published_date BETWEEN '2023-01-01' AND '2023-12-31'"""
+# )
+
+
+
+# import locale
+# import calendar
+#
+#
+# try:
+#     locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
+# except locale.Error:
+#     pass
+#
+#
+# def get_month_names_mapping():
+#     return {
+#         i: calendar.month_name[i]
+#         for i in range(1, 13)
+#     }
+#
+# def get_month_abbr_names_mapping():
+#     return {
+#         i: calendar.month_abbr[i]
+#         for i in range(1, 13)
+#     }
+#
+#
+# def get_weekday_names_mapping():
+#     return {
+#         i: calendar.day_name[i-1]
+#         for i in range(1, 8)
+#     }
+#
+# print(get_month_names_mapping())
+# print(get_month_abbr_names_mapping())
+# print(get_weekday_names_mapping())
+#
+#
+# from django.db.models.functions import ExtractMonth
+# from django.db.models import Count, Case, When, CharField, Value
+# from django.utils.translation import gettext_lazy as _
+#
+#
+# def generate_cases():
+#     month_names = get_month_names_mapping()
+#
+#     cases = [
+#         When(pub_month_num=num, then=_(name))
+#         for num, name in month_names.items()
+#     ]
+#
+#     return Case(*cases, output_field=CharField())
+#
+#
+# books_with_month_names = Book.objects.annotate(
+#     pub_month_num=ExtractMonth('published_date'),
+#     pub_month_name=generate_cases()
+# ).values('pub_month_name').annotate(
+#     count_ob_books=Count('id')
+# )
+#
+# print(books_with_month_names)
+
+# b = Book.objects.all().explain(analyze=True)
+#
+# print(b)
+
+ # ### **Задача 1: Общее количество книг и их средняя цена**
 
 # res = Book.objects.aggregate(
 #     total_books=Count('id'),
@@ -596,3 +748,5 @@ books_per_author = Book.objects.values(
 #         output_field=DecimalField(max_digits=6, decimal_places=2)
 #     )
 # )
+
+
