@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 
-from src.library.services.base_response import ErrorType
+from src.shared.base_service_response import ErrorType
 from src.library.services.book import BookService
 from src.utils.converters import validate_and_convert_choices
 

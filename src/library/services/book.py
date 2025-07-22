@@ -6,7 +6,7 @@ from rest_framework.pagination import PageNumberPagination
 
 from src.library.dtos.book import BookListDTO, BookDetailedDTO, BookCreateDTO
 from src.library.repositories.book import BookRepository
-from src.library.services.base_response import ServiceResponse, ErrorType
+from src.shared.base_service_response import ServiceResponse, ErrorType
 
 
 class BookService:
