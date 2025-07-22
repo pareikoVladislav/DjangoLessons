@@ -1,7 +1,7 @@
 from django.db import DatabaseError, OperationalError
 
 from src.library.models import Book
-from src.library.repositories.base import BaseRepository
+from src.shared.base_repo import BaseRepository
 
 
 class BookRepository(BaseRepository):
