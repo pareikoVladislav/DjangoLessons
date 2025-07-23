@@ -13,7 +13,25 @@ class ListUsersDTO(serializers.ModelSerializer):
             'last_name',
             'email',
             'role',
+            'books'
         )
+
+    def to_representation(self, instance):
+        basic_repr = super().to_representation(instance)
+        if self.context.get('include_related'):
+            basic_repr['books'] = [
+                {
+                    "id": b.id,
+                    "title": b.title,
+                    "genre": b.genre,
+                    "language": b.language,
+                    "category": b.category.title,
+                    "price": b.price,
+                }
+                for b in instance.books.all()
+            ]
+
+        return basic_repr
 
 
 class DetailedUserDTO(serializers.ModelSerializer):
