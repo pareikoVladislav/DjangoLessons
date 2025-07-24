@@ -38,6 +38,13 @@ class Author(models.Model):
         default=1.0,
         verbose_name='Рейтинг',
     )
+    deleted = models.BooleanField(
+        default=False
+    )
+    deleted_at = models.DateTimeField(
+        null=True,
+        blank=True
+    )
 
     def __str__(self):
         return f"{self.last_name} {self.first_name[0]}."
