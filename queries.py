@@ -6,7 +6,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 django.setup()
 
 # ИМПОРТЫ НАШЕГО ФУНКЦИОНАЛА ДОЛЖНЫ БЫТЬ СТРОГО ПОСЛЕ СИСТЕМНОЙ НАСТРОЙКИ ВЫШЕ
-from src.library.models import Book, Category, Author, Post, Borrow, book
+from src.library.models import Book, Category, Author, Post, Borrow, book, LibraryRecord
 from src.users.models import User
 from src.choices.base import Genre
 
@@ -629,4 +629,63 @@ class CustomSerializerClass(serializers.Serializer):
 # print(b)
 
 
+# from src.shared.debug_tools import QueryDebug
+# from src.library.models import Book
+#
+# with QueryDebug(log_file='queries.log') as qd:
+#     b = Book.objects.all()
+#     print(b.query)
+#
+#     for obj in b:
+#         print(obj.title, obj.author.last_name, obj.category.title)
 
+
+# select_related() - o2o, o2m(базовая, где у модели есть поле как foreign_key)
+
+# prefetch_related() - m2m, или обратная o2m (где в модели есть ссылка related_name)
+
+
+
+# from src.shared.debug_tools import QueryDebug
+# from src.library.models import Book
+#
+# with QueryDebug(log_file='queries.log') as qd:
+#     b = Book.objects.select_related(
+#         'author', 'category'
+#     )
+#     print(b.query)
+#
+#     for obj in b:
+#         print(obj.title, obj.author.last_name, obj.category.title)
+
+
+# from src.shared.debug_tools import QueryDebug
+# from src.library.models import Book
+#
+# with QueryDebug(log_file='queries.log') as qd:
+#     author = Author.objects.prefetch_related(
+#         'books'
+#     )
+#
+#     print(author.query)
+#
+#     for a in author:
+#         print(a.first_name, a.last_name)
+#
+#         for b in a.books.all():
+#             print(f"  {b.title}")
+
+
+from src.shared.debug_tools import QueryDebug
+from src.library.models import Book
+
+with QueryDebug(log_file='queries.log') as qd:
+    author = Author.objects.all()
+
+    print(author.query)
+
+    for a in author:
+        print(a.first_name, a.last_name)
+
+        for b in a.books.all():
+            print(f"  {b.title}")
