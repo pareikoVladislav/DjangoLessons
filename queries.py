@@ -1,6 +1,6 @@
 import os
 import django
-from django.utils.crypto import pbkdf2
+
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 django.setup()
@@ -628,6 +628,126 @@ class CustomSerializerClass(serializers.Serializer):
 #
 # print(b)
 
+ # ### **Задача 1: Общее количество книг и их средняя цена**
+
+# res = Book.objects.aggregate(
+#     total_books=Count('id'),
+#     avg_price=Avg('price')
+# )
+#
+# print(res)
+
+# ### **Задача 2: Диапазон цен и общее количество страниц**
+# # **ТЗ:** Найти минимальную, максимальную цену книг и общее количество страниц всех книг
+
+# res = Book.objects.aggregate(
+#     min_price=Min('price'),
+#     max_price=Max('price'),
+#     total_pages=Sum('pages')
+# )
+#
+# print(res)
+
+# ### **Задача 3: Количество книг по каждому жанру**
+# # **ТЗ:** Подсчитать количество книг в каждом жанре, отсортировать по убыванию количества
+
+# res = Book.objects.values('genre').annotate(count_books=Count('id')).order_by('-count_books')
+#
+# print(res)
+
+#  **Задача 4: Средняя цена книг по каждому языку**
+# # **ТЗ:** Вычислить среднюю цену книг для каждого языка
+# и количество книг на каждом языке
+
+# res = Book.objects.values('language').annotate(
+#     avg_price=Avg('price'),
+#     count_books=Count('id')
+# )
+#
+# print(res)
+
+### **Задача 5: Авторы с количеством книг и средним рейтингом**
+# **ТЗ:** Получить всех авторов с количеством написанных книг,
+# отсортировать по убыванию количества книг
+
+# res = Book.objects.values('author__last_name', 'author__first_name').annotate(
+#     count_books=Count('id')
+# ).order_by('-count_books')
+#
+# print(res)
+
+# ### **Задача 6: Топ-5 читателей по количеству активных займов**
+# # **ТЗ:** Найти 5 пользователей с наибольшим количеством невозвращенных книг
+
+# res = Borrow.objects.values(
+#     username=F('library_record__member__username')
+# ).annotate(count_books=Count('book__id')).order_by('-count_books')[:5]
+# print(res)
+
+# ### **Задача 7: Библиотеки с общим количеством страниц и средней ценой книг**
+# # **ТЗ:** Для каждой библиотеки вычислить общее количество страниц
+# всех книг и среднюю цену
+
+# res = Book.objects.values(library=F('libraries__name')).annotate(
+#     count_pages=Sum('pages'),
+#     avg_price=Avg('price')
+# )
+# print(res)
+
+# ### **Задача 8: Книги с количеством займов и статусом популярности**
+# # **ТЗ:** Для каждой книги подсчитать количество займов и пометить
+# как популярную (>3 займов) или обычную
+
+# res = Borrow.objects.values(
+#     book_title=F('book__title')
+# ).annotate(
+#     count_borrows=Count('id'),
+#     book_status=Case(
+#         When(count_borrows__gt=3, then=Value('popular')),
+#         default=Value('ordinary'),
+#         output_field=CharField()
+#     )
+# )
+#
+# print(res)
+
+
+# ### **Задача 9: Авторы с количеством книг больше среднего**
+# # **ТЗ:** Найти авторов, у которых количество книг больше
+# среднего количества книг по авторам
+
+avg_books = Book.objects.values(
+    'author__last_name', 'author__first_name'
+).annotate(count_books=Count('id')
+           ).values('count_books'
+                    ).aggregate(avg_books=Avg('count_books'))['avg_books']
+
+books_per_author = Book.objects.values(
+    'author__last_name', 'author__first_name'
+).annotate(count_books=Count('id'))
+
+
+# ### **Задача 10: Книги дороже средней цены в своем жанре**
+# # **ТЗ:** Найти книги, цена которых превышает среднюю цену книг
+# в том же жанре
+
+
+# ### **Задача 11: Библиотеки с книгами дороже средней цены всех книг**
+# # **ТЗ:** Найти библиотеки, в которых есть книги дороже
+# средней цены всех книг в системе
+
+# sub_query = Book.objects.filter(
+#     author=OuterRef('author')).values('author').annotate(
+#     min_price=Min('price')
+# ).values('min_price') # U0
+#
+#
+# primary_query = Book.objects.annotate( # Book.objects.all() => SELECT *
+#     min_price=Subquery(
+#         sub_query,
+#         output_field=DecimalField(max_digits=6, decimal_places=2)
+#     )
+# )
 
 # from src.shared.debug_tools import QueryDebug
 # from src.library.models import Book
