@@ -11,3 +11,9 @@ class NestedAuthorShortInfoDTO(serializers.ModelSerializer):
             'last_name',
             'rating',
         )
+
+
+class AuthorDTO(serializers.ModelSerializer):
+    class Meta:
+        model = Author
+        fields = '__all__'
