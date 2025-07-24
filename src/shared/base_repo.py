@@ -39,9 +39,21 @@ class BaseRepository:
 
     @transaction.atomic
     def create(self, **kwargs) -> Model_:
+        many_to_many_fields = {}
 
         try:
+            for field in self.model._meta.many_to_many:
+                if field.name in kwargs:
+                    many_to_many_fields[field.name] = kwargs.pop(field.name)
+
             obj = self.model.objects.create(**kwargs)
+
+            for field_name, value in many_to_many_fields.items():
+                field = getattr(obj, field_name)
+
+                if value:
+                    field.set(value)
+
             return obj
         except ValidationError as e:
             raise ValidationError(f"Validation failed for {self.model.__name__}") from e

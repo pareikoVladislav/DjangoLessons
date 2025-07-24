@@ -1,7 +1,6 @@
 import os
 import django
-
-from src.choices.base import Genre, Role
+from django.utils.crypto import pbkdf2
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 django.setup()
@@ -9,10 +8,10 @@ django.setup()
 # ИМПОРТЫ НАШЕГО ФУНКЦИОНАЛА ДОЛЖНЫ БЫТЬ СТРОГО ПОСЛЕ СИСТЕМНОЙ НАСТРОЙКИ ВЫШЕ
 from src.library.models import Book, Category, Author, Post, Borrow, book
 from src.users.models import User
+from src.choices.base import Genre
 
-import datetime
 from django.db.models.query import QuerySet
-from django.db.models import Q, F, Avg, Count, Min, Max, Sum
+from django.db.models import Q, F
 
 
 # books = Book.objects.all()
@@ -425,14 +424,14 @@ from django.db.models import OuterRef, Subquery, DecimalField
 #     print(f"Тип результата: {type(a.performance_score)}")
 
 
-# from rest_framework import serializers
-#
-#
-# class CustomSerializerClass(serializers.Serializer):
-#     name = serializers.CharField(max_length=30)
-#     age = serializers.IntegerField(min_value=0)
-#     is_active = serializers.BooleanField()
-#     created_at = serializers.DateTimeField()
+from rest_framework import serializers
+
+
+class CustomSerializerClass(serializers.Serializer):
+    name = serializers.CharField(max_length=30)
+    age = serializers.IntegerField(min_value=0)
+    is_active = serializers.BooleanField()
+    created_at = serializers.DateTimeField()
 #
 #
 #
@@ -478,74 +477,93 @@ from django.db.models import OuterRef, Subquery, DecimalField
 #     print(e)
 
 
-# ### **Задача 1: Общее количество книг и их средняя цена**
-# **ТЗ:** Получить общее количество книг в базе данных и среднюю цену всех книг в одном запросе
 
-# result = Book.objects.aggregate(
-#     total=Count('id'),
-#     avg_price=Avg('price')
+# books = Book.objects.filter(
+#     published_date__year__gt=2023
 # )
 #
-# print(result)
-
-
-### **Задача 2: Диапазон цен и общее количество страниц**
-# **ТЗ:** Найти минимальную, максимальную цену книг и общее количество страниц всех книг
+# print(books)
 #
-# result = Book.objects.aggregate(
-#     min_price=Min('price'),
-#     max_price=Max('price'),
-#     total_pages=Sum('pages')
+# for b in books:
+#     print(b.published_date)
+
+
+# from django.db.models.functions import ExtractYear
+# from django.db.models import Count
+#
+# books_by_year = Book.objects.annotate(
+#     pub_year=ExtractYear('published_date')
+# ).values('pub_year').annotate(
+#     count_ob_books=Count('id')
+# ).order_by('pub_year')
+#
+#
+#
+# for obj in books_by_year:
+#     print(obj['pub_year'], obj['count_ob_books'])
+
+
+# from django.db.models.functions import ExtractMonth
+# from django.db.models import Count
+#
+# books_by_month = Book.objects.annotate(
+#     pub_month=ExtractMonth('published_date')
+# ).values('pub_month').annotate(
+#     count_ob_books=Count('id')
+# ).order_by('pub_month')
+#
+#
+#
+# for obj in books_by_month:
+#     print(obj['pub_month'], obj['count_ob_books'])
+#
+#
+#
+# jan_books = Book.objects.annotate(
+#     pub_month=ExtractMonth('published_date')
+# ).filter(pub_month=1)
+#
+# print(jan_books)
+
+
+
+# from django.db.models.functions import ExtractMonth
+# from django.db.models import Count, Case, When, CharField, Value
+# from django.utils.translation import gettext_lazy as _
+#
+#
+# books_by_month = Book.objects.annotate(
+#     pub_month=ExtractMonth('published_date'),
+#     pub_month_name=Case(
+#         When(pub_month=1, then='January'),
+#         When(pub_month=2, then='February'),
+#         When(pub_month=3, then='March'),
+#         When(pub_month=4, then='April'),
+#         When(pub_month=5, then='May'),
+#         When(pub_month=6, then='June'),
+#         When(pub_month=7, then='July'),
+#         When(pub_month=8, then='August'),
+#         When(pub_month=9, then='September'),
+#         When(pub_month=10, then='October'),
+#         When(pub_month=11, then='November'),
+#         When(pub_month=12, then='December'),
+#         output_field=CharField()
+#     )
+# ).values('pub_month_name').annotate(
+#     count_ob_books=Count('id')
 # )
-# print(result)
+#
+#
+# for obj in books_by_month:
+#     print(obj['pub_month_name'], obj['count_ob_books'])
 
-### **Задача 3: Количество книг по каждому жанру**
-# **ТЗ:** Подсчитать количество книг в каждом жанре, отсортировать по убыванию количества
+# books = Book.objects.raw(
+#     """
+#     SELECT * FROM books_book
+#     WHERE published_date BETWEEN '2023-01-01' AND '2023-12-31'"""
+# )
 
-# result = Book.objects.values('genre').annotate(
-#     book_count=Count('id')
-# ).order_by('-book_count')
-#
-# for genre in result:
-#     print(f'{genre['genre']} : {genre['book_count']}')
 
-### **Задача 4: Средняя цена книг по каждому языку**
-# **ТЗ:** Вычислить среднюю цену книг для каждого языка и количество книг на каждом языке
-
-# result = Book.objects.values('language').annotate(
-#     avg_price=Avg('price'),
-#     book_count=Count('id')
-# ).order_by('-avg_price')
-#
-# for lang in result:
-#     print(f"Language: {lang['language']}, Average Price: {lang['avg_price']}, Book Count: {lang['book_count']}")
-#
-#
-# ### **Задача 5: Авторы с количеством книг и средним рейтингом**
-# # **ТЗ:** Получить всех авторов с количеством написанных книг, отсортировать по убыванию количества книг
-#
-# author_rated_books_amount = Author.objects.annotate(
-#     book_count=Count('books'),
-#     avg_rating=Avg('rating'),
-#
-# ).order_by('-book_count')
-#
-# for author in author_rated_books_amount:
-#     print(f"Author: {author.first_name} {author.last_name}", f"Book Count: {author.book_count}", f"Average Rating: {author.avg_rating}")
-#
-# ### **Задача 6: Топ-5 читателей по количеству активных займов**
-# # **ТЗ:** Найти 5 пользователей с наибольшим количеством невозвращенных книг
-#
-# top_borrowers = User.objects.filter(
-#     role=Role.reader).annotate(
-#     active_borrows=Count('borrows__borrows', filter=Q(borrows__borrows__is_returned=False)),
-#
-#
-# ).filter(active_borrows__gt=0).order_by('-active_borrows')[:5]
-#
-# print("Top 5 Borrowers:")
-# for user in top_borrowers:
-#     print(f"{user.first_name} {user.last_name} ({user.username}) - {user.active_borrows} active borrow(s)")
 
 # import locale
 # import calendar
@@ -562,6 +580,7 @@ from django.db.models import OuterRef, Subquery, DecimalField
 #         i: calendar.month_name[i]
 #         for i in range(1, 13)
 #     }
+#
 # def get_month_abbr_names_mapping():
 #     return {
 #         i: calendar.month_abbr[i]
@@ -578,6 +597,8 @@ from django.db.models import OuterRef, Subquery, DecimalField
 # print(get_month_names_mapping())
 # print(get_month_abbr_names_mapping())
 # print(get_weekday_names_mapping())
+#
+#
 # from django.db.models.functions import ExtractMonth
 # from django.db.models import Count, Case, When, CharField, Value
 # from django.utils.translation import gettext_lazy as _
@@ -592,6 +613,8 @@ from django.db.models import OuterRef, Subquery, DecimalField
 #     ]
 #
 #     return Case(*cases, output_field=CharField())
+#
+#
 # books_with_month_names = Book.objects.annotate(
 #     pub_month_num=ExtractMonth('published_date'),
 #     pub_month_name=generate_cases()
@@ -604,3 +627,6 @@ from django.db.models import OuterRef, Subquery, DecimalField
 # b = Book.objects.all().explain(analyze=True)
 #
 # print(b)
+
+
+

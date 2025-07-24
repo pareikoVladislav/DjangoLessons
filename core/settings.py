@@ -44,6 +44,7 @@ INSTALLED_APPS = [
 
     # 3-rd party
     'rest_framework',
+    'django_filters',
 
     # local
     'src.library.apps.LibraryConfig',
