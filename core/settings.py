@@ -1,3 +1,6 @@
+import pymysql
+pymysql.install_as_MySQLdb()
+
 """
 Django settings for core project.
 
@@ -19,6 +22,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 env = Env()
 
 env.read_env(BASE_DIR / '.env')
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -49,6 +53,8 @@ INSTALLED_APPS = [
     # local
     'src.library.apps.LibraryConfig',
     'src.users.apps.UsersConfig',
+
+    # 3-rd party
 ]
 
 MIDDLEWARE = [
