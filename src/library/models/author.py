@@ -2,6 +2,9 @@ from datetime import datetime
 
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
+from django.utils import timezone
+
+from src.library.models.managers.author import SoftDeleteAuthorManager
 
 
 class Author(models.Model):
@@ -38,6 +41,23 @@ class Author(models.Model):
         default=1.0,
         verbose_name='Рейтинг',
     )
+    deleted = models.BooleanField(
+        default=False
+    )
+    deleted_at = models.DateTimeField(
+        null=True,
+        blank=True
+    )
+
+    objects = SoftDeleteAuthorManager()
+
+    def delete(self, using = None, keep_parents = False):
+        self.deleted = True
+        self.deleted_at = timezone.now()
+        self.save()
+
+    def hard_delete(self):
+        super().delete()
 
     def __str__(self):
         return f"{self.last_name} {self.first_name[0]}."
