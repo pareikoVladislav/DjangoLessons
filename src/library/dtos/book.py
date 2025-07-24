@@ -20,7 +20,20 @@ class BookListDTO(serializers.ModelSerializer):
             'published_date',
             'author',
         )
-
+    def to_representation(self, instance):
+        resp = super().to_representation(instance)
+        if self.context.get('include_related'):
+            if instance.author:
+                resp['author'] = {
+                    'id': instance.author.id,
+                    'name': f"{instance.author.last_name} {instance.author.first_name[0]}."
+                }
+            else:
+                resp['author'] = None
+            resp['category'] = (
+                instance.category.title if instance.category else None
+            )
+        return resp
 
 class BookDetailedDTO(serializers.ModelSerializer):
     # published_date = serializers.DateField(
