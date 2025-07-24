@@ -1,6 +1,7 @@
 import os
 import django
 
+from src.choices.base import Genre, Role
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 django.setup()
@@ -8,10 +9,10 @@ django.setup()
 # ИМПОРТЫ НАШЕГО ФУНКЦИОНАЛА ДОЛЖНЫ БЫТЬ СТРОГО ПОСЛЕ СИСТЕМНОЙ НАСТРОЙКИ ВЫШЕ
 from src.library.models import Book, Category, Author, Post, Borrow, book
 from src.users.models import User
-from src.choices.base import Genre, Gender, Role
+
 import datetime
 from django.db.models.query import QuerySet
-from django.db.models import Q, F
+from django.db.models import Q, F, Avg, Count, Min, Max, Sum
 
 
 # books = Book.objects.all()
@@ -424,14 +425,14 @@ from django.db.models import OuterRef, Subquery, DecimalField
 #     print(f"Тип результата: {type(a.performance_score)}")
 
 
-from rest_framework import serializers
-
-
-class CustomSerializerClass(serializers.Serializer):
-    name = serializers.CharField(max_length=30)
-    age = serializers.IntegerField(min_value=0)
-    is_active = serializers.BooleanField()
-    created_at = serializers.DateTimeField()
+# from rest_framework import serializers
+#
+#
+# class CustomSerializerClass(serializers.Serializer):
+#     name = serializers.CharField(max_length=30)
+#     age = serializers.IntegerField(min_value=0)
+#     is_active = serializers.BooleanField()
+#     created_at = serializers.DateTimeField()
 #
 #
 #
@@ -475,3 +476,131 @@ class CustomSerializerClass(serializers.Serializer):
 #     print(new_category.validated_data)
 # except serializers.ValidationError as e:
 #     print(e)
+
+
+# ### **Задача 1: Общее количество книг и их средняя цена**
+# **ТЗ:** Получить общее количество книг в базе данных и среднюю цену всех книг в одном запросе
+
+# result = Book.objects.aggregate(
+#     total=Count('id'),
+#     avg_price=Avg('price')
+# )
+#
+# print(result)
+
+
+### **Задача 2: Диапазон цен и общее количество страниц**
+# **ТЗ:** Найти минимальную, максимальную цену книг и общее количество страниц всех книг
+#
+# result = Book.objects.aggregate(
+#     min_price=Min('price'),
+#     max_price=Max('price'),
+#     total_pages=Sum('pages')
+# )
+# print(result)
+
+### **Задача 3: Количество книг по каждому жанру**
+# **ТЗ:** Подсчитать количество книг в каждом жанре, отсортировать по убыванию количества
+
+# result = Book.objects.values('genre').annotate(
+#     book_count=Count('id')
+# ).order_by('-book_count')
+#
+# for genre in result:
+#     print(f'{genre['genre']} : {genre['book_count']}')
+
+### **Задача 4: Средняя цена книг по каждому языку**
+# **ТЗ:** Вычислить среднюю цену книг для каждого языка и количество книг на каждом языке
+
+# result = Book.objects.values('language').annotate(
+#     avg_price=Avg('price'),
+#     book_count=Count('id')
+# ).order_by('-avg_price')
+#
+# for lang in result:
+#     print(f"Language: {lang['language']}, Average Price: {lang['avg_price']}, Book Count: {lang['book_count']}")
+#
+#
+# ### **Задача 5: Авторы с количеством книг и средним рейтингом**
+# # **ТЗ:** Получить всех авторов с количеством написанных книг, отсортировать по убыванию количества книг
+#
+# author_rated_books_amount = Author.objects.annotate(
+#     book_count=Count('books'),
+#     avg_rating=Avg('rating'),
+#
+# ).order_by('-book_count')
+#
+# for author in author_rated_books_amount:
+#     print(f"Author: {author.first_name} {author.last_name}", f"Book Count: {author.book_count}", f"Average Rating: {author.avg_rating}")
+#
+# ### **Задача 6: Топ-5 читателей по количеству активных займов**
+# # **ТЗ:** Найти 5 пользователей с наибольшим количеством невозвращенных книг
+#
+# top_borrowers = User.objects.filter(
+#     role=Role.reader).annotate(
+#     active_borrows=Count('borrows__borrows', filter=Q(borrows__borrows__is_returned=False)),
+#
+#
+# ).filter(active_borrows__gt=0).order_by('-active_borrows')[:5]
+#
+# print("Top 5 Borrowers:")
+# for user in top_borrowers:
+#     print(f"{user.first_name} {user.last_name} ({user.username}) - {user.active_borrows} active borrow(s)")
+
+# import locale
+# import calendar
+#
+#
+# try:
+#     locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
+# except locale.Error:
+#     pass
+#
+#
+# def get_month_names_mapping():
+#     return {
+#         i: calendar.month_name[i]
+#         for i in range(1, 13)
+#     }
+# def get_month_abbr_names_mapping():
+#     return {
+#         i: calendar.month_abbr[i]
+#         for i in range(1, 13)
+#     }
+#
+#
+# def get_weekday_names_mapping():
+#     return {
+#         i: calendar.day_name[i-1]
+#         for i in range(1, 8)
+#     }
+#
+# print(get_month_names_mapping())
+# print(get_month_abbr_names_mapping())
+# print(get_weekday_names_mapping())
+# from django.db.models.functions import ExtractMonth
+# from django.db.models import Count, Case, When, CharField, Value
+# from django.utils.translation import gettext_lazy as _
+#
+#
+# def generate_cases():
+#     month_names = get_month_names_mapping()
+#
+#     cases = [
+#         When(pub_month_num=num, then=_(name))
+#         for num, name in month_names.items()
+#     ]
+#
+#     return Case(*cases, output_field=CharField())
+# books_with_month_names = Book.objects.annotate(
+#     pub_month_num=ExtractMonth('published_date'),
+#     pub_month_name=generate_cases()
+# ).values('pub_month_name').annotate(
+#     count_ob_books=Count('id')
+# )
+#
+# print(books_with_month_names)
+
+# b = Book.objects.all().explain(analyze=True)
+#
+# print(b)
