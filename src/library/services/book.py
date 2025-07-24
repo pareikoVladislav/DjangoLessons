@@ -45,7 +45,8 @@ class BookService:
                 ],
             }
             """
-            serializer = BookListDTO(results, many=True)
+            include_related = query_params.get('include_related') == 'true'
+            serializer = BookListDTO(results, many=True, context={"include_related":include_related})
 
             resp = self.paginator.get_paginated_response(serializer.data)
 
