@@ -130,6 +130,53 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+REST_FRAMEWORK = {
+    # 'DEFAULT_PAGINATION_CLASS': 'rest_framework.paginators.LimitOffsetPagination',
+    'DEFAULT_PAGINATION_CLASS': 'src.shared.paginators.CustomPageNumber',
+}
+
+
+# LOG_LEVEL = env.str('LOG_LEVEL', default='INFO')
+LOG_LEVEL = 'DEBUG' if env.bool('DEBUG') else 'INFO'
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+
+    'formatters': {
+        'verbose': {
+            'format': '[{asctime}]: | Module:{module}-Method:{funcName} Line:{lineno} - {message}',
+            'style': '{',
+            'datefmt': '%Y-%m-%d %H:%M:%S'
+        },
+    },
+
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'level': LOG_LEVEL,
+            'formatter': 'verbose'
+        },
+        'file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'level': LOG_LEVEL,
+            'formatter': 'verbose',
+            'filename': str(BASE_DIR /  'db_queries.log'),
+            'maxBytes': 1024 * 1024 * 5,
+            'backupCount': 5,
+            'encoding': 'utf-8'
+        },
+    },
+
+    'loggers': {
+        'django.db.backends': {
+            'handlers': ['console', 'file'],
+            'level': LOG_LEVEL,
+            'propagate': False,
+        }
+    },
+}
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
