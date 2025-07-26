@@ -1,6 +1,7 @@
 from django.db import DatabaseError, OperationalError
+from django.db.models import Count, F
 
-from src.library.models import Book
+from src.library.models import Book, Library
 from src.shared.base_repo import BaseRepository
 
 
@@ -18,7 +19,7 @@ class BookRepository(BaseRepository):
     def _get_queryset(self, params):
         allowed_sort_params = {'price', 'published_date'}
 
-        queryset = Book.objects.all() # SELECT * FROM books;
+        queryset = self.model.objects.all() # SELECT * FROM books;
 
         authors = params.getlist('author')  # {'author': ['Joe', 'Sapkivski', 'King', ...], 'year': '2023'}
         pub_date = params.get('year')

@@ -7,7 +7,7 @@ class Borrow(models.Model):
     book: models.ForeignKey = models.ForeignKey(
         'Book',
         on_delete=models.PROTECT,
-        related_name='books'
+        related_name='borrows'
     )
     borrow_date = models.DateField(
         auto_now_add=True
@@ -36,12 +36,12 @@ class LibraryRecord(models.Model):
     member: models.ForeignKey = models.ForeignKey(
         'users.User',
         on_delete=models.PROTECT,  # если пользователь что-то взял, то пока он не вернет, нельзя удалить))
-        related_name='borrows'
+        related_name='library_records'
     )
     library: models.ForeignKey = models.ForeignKey(
         'Library',
         on_delete=models.PROTECT,
-        related_name='borrows'
+        related_name='library_records'
     )
 
     @property

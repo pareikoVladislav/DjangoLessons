@@ -1,14 +1,14 @@
 import os
 import django
-
+from django.db.models.functions import ExtractWeekDay
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 django.setup()
 
 # ИМПОРТЫ НАШЕГО ФУНКЦИОНАЛА ДОЛЖНЫ БЫТЬ СТРОГО ПОСЛЕ СИСТЕМНОЙ НАСТРОЙКИ ВЫШЕ
-from src.library.models import Book, Category, Author, Post, Borrow, book, LibraryRecord
+from src.library.models import Book, Category, Author, Post, Borrow, book, LibraryRecord, Library
 from src.users.models import User
-from src.choices.base import Genre
+from src.choices.base import Genre, Role
 
 from django.db.models.query import QuerySet
 from django.db.models import Q, F
@@ -716,15 +716,15 @@ class CustomSerializerClass(serializers.Serializer):
 # # **ТЗ:** Найти авторов, у которых количество книг больше
 # среднего количества книг по авторам
 
-avg_books = Book.objects.values(
-    'author__last_name', 'author__first_name'
-).annotate(count_books=Count('id')
-           ).values('count_books'
-                    ).aggregate(avg_books=Avg('count_books'))['avg_books']
-
-books_per_author = Book.objects.values(
-    'author__last_name', 'author__first_name'
-).annotate(count_books=Count('id'))
+# avg_books = Book.objects.values(
+#     'author__last_name', 'author__first_name'
+# ).annotate(count_books=Count('id')
+#            ).values('count_books'
+#                     ).aggregate(avg_books=Avg('count_books'))['avg_books']
+#
+# books_per_author = Book.objects.values(
+#     'author__last_name', 'author__first_name'
+# ).annotate(count_books=Count('id'))
 
 
 # ### **Задача 10: Книги дороже средней цены в своем жанре**
@@ -749,21 +749,20 @@ books_per_author = Book.objects.values(
 #     )
 # )
 
-# from src.shared.debug_tools import QueryDebug
-# from src.library.models import Book
-#
-# with QueryDebug(log_file='queries.log') as qd:
-#     b = Book.objects.all()
-#     print(b.query)
-#
-#     for obj in b:
-#         print(obj.title, obj.author.last_name, obj.category.title)
+library_queryset = Library.objects.all()
+libs = {}
 
+for lib in library_queryset:
+    top_books = (Book
+                 .objects
+                 .filter(libraries=lib)
+                 .annotate(borrows_count=Count("borrows"))
+                 .order_by("-borrows_count")[:5]
+                 )
 
-# select_related() - o2o, o2m(базовая, где у модели есть поле как foreign_key)
+    libs[lib.id] = top_books
 
-# prefetch_related() - m2m, или обратная o2m (где в модели есть ссылка related_name)
-
+print(libs)
 
 
 # from src.shared.debug_tools import QueryDebug
@@ -796,16 +795,52 @@ books_per_author = Book.objects.values(
 #             print(f"  {b.title}")
 
 
-from src.shared.debug_tools import QueryDebug
-from src.library.models import Book
 
-with QueryDebug(log_file='queries.log') as qd:
-    author = Author.objects.all()
+# books = Book.objects.all()
+#
+# print(books.values("libraries").annotate(count_books=Count("id")))
 
-    print(author.query)
 
-    for a in author:
-        print(a.first_name, a.last_name)
+# libraries = Library.objects.all()
+# top_readers_per_library = {}
+#
+# for library in libraries:
+#     top_readers = User.objects.filter(
+#         role=Role.reader,
+#         libraries=library
+#     ).values("id").annotate(count_borrows=Count(
+#         "library_records__borrows")).order_by("-count_borrows")[:10]
+#     top_readers_per_library[library.id] = top_readers
+#
+# print(top_readers_per_library)
 
-        for b in a.books.all():
-            print(f"  {b.title}")
+# books = Book.objects.all()
+#
+# library_queryset = Library.objects.all()
+# count_books_by_genre_in_library = {}
+# for library in library_queryset:
+#     count_books_per_genre = books.values("genre").annotate(count_books=Count("id"))
+#     count_books_by_genre_in_library[library.id] = count_books_per_genre
+#
+# print(count_books_by_genre_in_library)
+
+# books = Book.objects.all()
+#
+# library_queryset = Library.objects.all()
+# top_genres_per_library = {}
+# for library in library_queryset:
+#     count_borrows = books.values("genre").annotate(
+#         count_borrows=Count("borrows")).order_by("-count_borrows")[:3]
+#     top_genres_per_library[library.id] = count_borrows
+#
+# print(top_genres_per_library)
+
+# print(Library.objects.all().values(
+#                 "id").annotate(count_readers=Count(
+#                 "members", filter=Q(members__role=Role.reader))
+#             )
+# )
+
+# print(Borrow.objects.annotate(
+# weekday=ExtractWeekDay("borrow_date")).values("weekday").annotate(
+# count_borrows=Count("id")).order_by("-count_borrows")[:2])
