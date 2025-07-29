@@ -6,7 +6,12 @@ class ErrorType(str, Enum):
     NOT_FOUND = "not_found"
     VALIDATION_ERROR = "validation_error"
     INTEGRITY_ERROR = "integrity_error"
+    DATABASE_ERROR = "database_error"
     UNKNOWN_ERROR = "unknown_error"
+
+    @classmethod
+    def errors_list(cls):
+        return [attr.value for attr in cls]
 
 
 class ServiceResponse:
