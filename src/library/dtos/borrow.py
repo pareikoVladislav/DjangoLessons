@@ -23,3 +23,19 @@ class OverdueBorrowsDTO(serializers.ModelSerializer):
             "is_returned",
             "member"
         )
+
+
+class BorrowCreateDTO(serializers.ModelSerializer):
+    class Meta:
+        model = Borrow
+        fields = (
+            "book",
+            "library_record",
+            "borrow_date",
+            "return_date",
+            "is_returned",
+        )
+        extra_kwargs = {
+            "borrow_date": {"required": False},
+            "is_returned": {"required": False},
+        }
