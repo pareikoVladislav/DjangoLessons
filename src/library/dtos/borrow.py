@@ -24,6 +24,10 @@ class OverdueBorrowsDTO(serializers.ModelSerializer):
             "member"
         )
 
+class TopBorrowerSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField(source='id')
+    full_name = serializers.CharField(source='get_full_name',max_length=50)
+    books_borrowed = serializers.IntegerField()
 
 class BorrowCreateDTO(serializers.ModelSerializer):
     class Meta:
