@@ -3,6 +3,9 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.authentication import JWTAuthentication
+
 
 from src.shared.base_service_response import ErrorType
 from src.library.services.book import BookService
@@ -10,6 +13,8 @@ from src.utils.converters import validate_and_convert_choices
 
 
 class BookListCreateAPIView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
     books_service = BookService()
 
     def get(self, request: Request) -> Response:
@@ -66,6 +71,8 @@ class BookListCreateAPIView(APIView):
 
 
 class BookRetrieveUpdateDestroyAPIView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
     books_service = BookService()
 
     def get(self, request: Request, book_id: int) -> Response:
