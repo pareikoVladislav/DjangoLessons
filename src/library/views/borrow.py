@@ -6,9 +6,10 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.decorators import action
+from rest_framework.generics import get_object_or_404
 from django.db.models import Count
 
-from src.library.dtos.borrow import BorrowDTO, OverdueBorrowsDTO, BorrowCreateDTO, TopBorrowerSerializer
+from src.library.dtos.borrow import BorrowDTO, OverdueBorrowsDTO, BorrowCreateDTO, TopBorrowerSerializer, BorrowReturnSerializer
 from src.library.dtos.library import LibraryRecordCreateDTO, LibraryCreateDTO
 from src.library.models import Borrow
 from src.users.dtos import CreateUserDTO
@@ -122,3 +123,25 @@ class BorrowViewSet(ModelViewSet):
             )
         finally:
             transaction.set_autocommit(True)
+
+    @action(methods=["post"], detail=True, url_path="return")
+    def return_borrow(self, request: Request,pk: int) -> Response:
+        try:
+            borrow = get_object_or_404(Borrow,pk=pk)
+            if borrow.is_returned:
+                raise ValueError("Книга уже возвращена")
+
+            with transaction.atomic():
+                borrow.return_date = timezone.now().date()
+                borrow.is_returned = True
+                borrow.save()
+
+                serializer = BorrowReturnSerializer(borrow)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(
+                data={
+                    'borrow': f"ошибка: {str(e)}"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
