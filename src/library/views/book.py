@@ -4,7 +4,6 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from rest_framework.permissions import IsAuthenticated
-from rest_framework_simplejwt.authentication import JWTAuthentication
 
 
 from src.shared.base_service_response import ErrorType
@@ -13,7 +12,6 @@ from src.utils.converters import validate_and_convert_choices
 
 
 class BookListCreateAPIView(APIView):
-    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
     books_service = BookService()
 
@@ -71,7 +69,6 @@ class BookListCreateAPIView(APIView):
 
 
 class BookRetrieveUpdateDestroyAPIView(APIView):
-    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
     books_service = BookService()
 
