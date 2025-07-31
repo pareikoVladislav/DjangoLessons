@@ -43,3 +43,17 @@ class BorrowCreateDTO(serializers.ModelSerializer):
             "borrow_date": {"required": False},
             "is_returned": {"required": False},
         }
+
+class BorrowReturnSerializer(serializers.ModelSerializer):
+    book_title = serializers.CharField(source="book.title")
+    member = serializers.CharField(source="library_record.member")
+    class Meta:
+        model = Borrow
+        fields = (
+            "id",
+            "book_title",
+            "borrow_date",
+            "return_date",
+            "is_returned",
+            "member"
+        )
