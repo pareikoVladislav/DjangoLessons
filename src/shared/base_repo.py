@@ -84,18 +84,18 @@ class BaseRepository:
         except DatabaseError as e:
             raise OperationalError(f"Failed to update {self.model.__name__}") from e
 
-    @transaction.atomic
     def delete(self, id_: int) -> None:
 
-        try:
-            obj = self.get_by_id(id_)
+        with transaction.atomic() as tr:
+            try:
+                obj = self.get_by_id(id_)
 
-            if obj is None:
-                raise ValueError(f"{self.model.__name__} with ID {id_} not found")
+                if obj is None:
+                    raise ValueError(f"{self.model.__name__} with ID {id_} not found")
 
-            obj.delete()
-        except DatabaseError as e:
-            raise OperationalError(f"Failed to delete {self.model.__name__}") from e
+                obj.delete()
+            except DatabaseError as e:
+                raise OperationalError(f"Failed to delete {self.model.__name__}") from e
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}({self.model.__name__})"

@@ -1,14 +1,14 @@
 import os
 import django
-from django.utils.crypto import pbkdf2
+from django.db.models.functions import ExtractWeekDay
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 django.setup()
 
 # ИМПОРТЫ НАШЕГО ФУНКЦИОНАЛА ДОЛЖНЫ БЫТЬ СТРОГО ПОСЛЕ СИСТЕМНОЙ НАСТРОЙКИ ВЫШЕ
-from src.library.models import Book, Category, Author, Post, Borrow, book
+from src.library.models import Book, Category, Author, Post, Borrow, book, LibraryRecord, Library
 from src.users.models import User
-from src.choices.base import Genre
+from src.choices.base import Genre, Role
 
 from django.db.models.query import QuerySet
 from django.db.models import Q, F
@@ -628,5 +628,219 @@ class CustomSerializerClass(serializers.Serializer):
 #
 # print(b)
 
+ # ### **Задача 1: Общее количество книг и их средняя цена**
+
+# res = Book.objects.aggregate(
+#     total_books=Count('id'),
+#     avg_price=Avg('price')
+# )
+#
+# print(res)
+
+# ### **Задача 2: Диапазон цен и общее количество страниц**
+# # **ТЗ:** Найти минимальную, максимальную цену книг и общее количество страниц всех книг
+
+# res = Book.objects.aggregate(
+#     min_price=Min('price'),
+#     max_price=Max('price'),
+#     total_pages=Sum('pages')
+# )
+#
+# print(res)
+
+# ### **Задача 3: Количество книг по каждому жанру**
+# # **ТЗ:** Подсчитать количество книг в каждом жанре, отсортировать по убыванию количества
+
+# res = Book.objects.values('genre').annotate(count_books=Count('id')).order_by('-count_books')
+#
+# print(res)
+
+#  **Задача 4: Средняя цена книг по каждому языку**
+# # **ТЗ:** Вычислить среднюю цену книг для каждого языка
+# и количество книг на каждом языке
+
+# res = Book.objects.values('language').annotate(
+#     avg_price=Avg('price'),
+#     count_books=Count('id')
+# )
+#
+# print(res)
+
+### **Задача 5: Авторы с количеством книг и средним рейтингом**
+# **ТЗ:** Получить всех авторов с количеством написанных книг,
+# отсортировать по убыванию количества книг
+
+# res = Book.objects.values('author__last_name', 'author__first_name').annotate(
+#     count_books=Count('id')
+# ).order_by('-count_books')
+#
+# print(res)
+
+# ### **Задача 6: Топ-5 читателей по количеству активных займов**
+# # **ТЗ:** Найти 5 пользователей с наибольшим количеством невозвращенных книг
+
+# res = Borrow.objects.values(
+#     username=F('library_record__member__username')
+# ).annotate(count_books=Count('book__id')).order_by('-count_books')[:5]
+# print(res)
+
+# ### **Задача 7: Библиотеки с общим количеством страниц и средней ценой книг**
+# # **ТЗ:** Для каждой библиотеки вычислить общее количество страниц
+# всех книг и среднюю цену
+
+# res = Book.objects.values(library=F('libraries__name')).annotate(
+#     count_pages=Sum('pages'),
+#     avg_price=Avg('price')
+# )
+# print(res)
+
+# ### **Задача 8: Книги с количеством займов и статусом популярности**
+# # **ТЗ:** Для каждой книги подсчитать количество займов и пометить
+# как популярную (>3 займов) или обычную
+
+# res = Borrow.objects.values(
+#     book_title=F('book__title')
+# ).annotate(
+#     count_borrows=Count('id'),
+#     book_status=Case(
+#         When(count_borrows__gt=3, then=Value('popular')),
+#         default=Value('ordinary'),
+#         output_field=CharField()
+#     )
+# )
+#
+# print(res)
 
 
+# ### **Задача 9: Авторы с количеством книг больше среднего**
+# # **ТЗ:** Найти авторов, у которых количество книг больше
+# среднего количества книг по авторам
+
+# avg_books = Book.objects.values(
+#     'author__last_name', 'author__first_name'
+# ).annotate(count_books=Count('id')
+#            ).values('count_books'
+#                     ).aggregate(avg_books=Avg('count_books'))['avg_books']
+#
+# books_per_author = Book.objects.values(
+#     'author__last_name', 'author__first_name'
+# ).annotate(count_books=Count('id'))
+
+
+# ### **Задача 10: Книги дороже средней цены в своем жанре**
+# # **ТЗ:** Найти книги, цена которых превышает среднюю цену книг
+# в том же жанре
+
+
+# ### **Задача 11: Библиотеки с книгами дороже средней цены всех книг**
+# # **ТЗ:** Найти библиотеки, в которых есть книги дороже
+# средней цены всех книг в системе
+
+# sub_query = Book.objects.filter(
+#     author=OuterRef('author')).values('author').annotate(
+#     min_price=Min('price')
+# ).values('min_price') # U0
+#
+#
+# primary_query = Book.objects.annotate( # Book.objects.all() => SELECT *
+#     min_price=Subquery(
+#         sub_query,
+#         output_field=DecimalField(max_digits=6, decimal_places=2)
+#     )
+# )
+
+library_queryset = Library.objects.all()
+libs = {}
+
+for lib in library_queryset:
+    top_books = (Book
+                 .objects
+                 .filter(libraries=lib)
+                 .annotate(borrows_count=Count("borrows"))
+                 .order_by("-borrows_count")[:5]
+                 )
+
+    libs[lib.id] = top_books
+
+print(libs)
+
+
+# from src.shared.debug_tools import QueryDebug
+# from src.library.models import Book
+#
+# with QueryDebug(log_file='queries.log') as qd:
+#     b = Book.objects.select_related(
+#         'author', 'category'
+#     )
+#     print(b.query)
+#
+#     for obj in b:
+#         print(obj.title, obj.author.last_name, obj.category.title)
+
+
+# from src.shared.debug_tools import QueryDebug
+# from src.library.models import Book
+#
+# with QueryDebug(log_file='queries.log') as qd:
+#     author = Author.objects.prefetch_related(
+#         'books'
+#     )
+#
+#     print(author.query)
+#
+#     for a in author:
+#         print(a.first_name, a.last_name)
+#
+#         for b in a.books.all():
+#             print(f"  {b.title}")
+
+
+
+# books = Book.objects.all()
+#
+# print(books.values("libraries").annotate(count_books=Count("id")))
+
+
+# libraries = Library.objects.all()
+# top_readers_per_library = {}
+#
+# for library in libraries:
+#     top_readers = User.objects.filter(
+#         role=Role.reader,
+#         libraries=library
+#     ).values("id").annotate(count_borrows=Count(
+#         "library_records__borrows")).order_by("-count_borrows")[:10]
+#     top_readers_per_library[library.id] = top_readers
+#
+# print(top_readers_per_library)
+
+# books = Book.objects.all()
+#
+# library_queryset = Library.objects.all()
+# count_books_by_genre_in_library = {}
+# for library in library_queryset:
+#     count_books_per_genre = books.values("genre").annotate(count_books=Count("id"))
+#     count_books_by_genre_in_library[library.id] = count_books_per_genre
+#
+# print(count_books_by_genre_in_library)
+
+# books = Book.objects.all()
+#
+# library_queryset = Library.objects.all()
+# top_genres_per_library = {}
+# for library in library_queryset:
+#     count_borrows = books.values("genre").annotate(
+#         count_borrows=Count("borrows")).order_by("-count_borrows")[:3]
+#     top_genres_per_library[library.id] = count_borrows
+#
+# print(top_genres_per_library)
+
+# print(Library.objects.all().values(
+#                 "id").annotate(count_readers=Count(
+#                 "members", filter=Q(members__role=Role.reader))
+#             )
+# )
+
+# print(Borrow.objects.annotate(
+# weekday=ExtractWeekDay("borrow_date")).values("weekday").annotate(
+# count_borrows=Count("id")).order_by("-count_borrows")[:2])
