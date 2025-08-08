@@ -36,22 +36,6 @@ class BookListDTO(serializers.ModelSerializer):
         return resp
 
 class BookDetailedDTO(serializers.ModelSerializer):
-    # published_date = serializers.DateField(
-    #     write_only=True
-    # )
-    # price = serializers.DecimalField(
-    #     max_digits=6,
-    #     decimal_places=2,
-    #     default=0.0,
-    #     help_text="asdasdasdasd",
-    #     write_only=True,
-    #     required=False,
-    #     allow_null=True,
-    #     min_value=0.01,
-    #     max_value=1000.00
-    # )
-    # author = NestedAuthorShortInfoDTO()
-    # libraries = NestedLibraryShortInfoDTO(many=True)
     author = serializers.StringRelatedField()
     publisher = serializers.SlugRelatedField(
         slug_field='username',
@@ -65,15 +49,6 @@ class BookDetailedDTO(serializers.ModelSerializer):
 
 
 class BookCreateDTO(serializers.ModelSerializer):
-    # discount_percent = serializers.DecimalField(
-    #     max_digits=4,
-    #     decimal_places=2,
-    #     required=False,
-    #     write_only=True,
-    #     min_value=0,
-    #     max_value=100
-    # )
-
     class Meta:
         model = Book
         fields = (
@@ -83,27 +58,21 @@ class BookCreateDTO(serializers.ModelSerializer):
             'pages',
             'language',
             'publisher',
-            'discounted_price',
-            # 'discount_percent',
             'author',
             'category',
             'price',
             'libraries'
         )
 
-    # def validate_discounted_price(self, value: float) -> float:
-    #     if not isinstance(value, (float, int)):
-    #         raise serializers.ValidationError(
-    #             "This field must be a float or number"
-    #         )
-    #
-    #     return value
+        extra_kwargs = {
+            'publisher': {'required': False},
+        }
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         disc_price = attrs.get('discounted_price')
         price = attrs.get('price')
 
-        if disc_price > price:
+        if disc_price and disc_price > price:
             raise serializers.ValidationError({
                 "discounted_price": "Discounted price must be less than or equal to original price"
             })

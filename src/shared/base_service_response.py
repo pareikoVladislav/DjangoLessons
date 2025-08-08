@@ -7,6 +7,7 @@ class ErrorType(str, Enum):
     VALIDATION_ERROR = "validation_error"
     INTEGRITY_ERROR = "integrity_error"
     DATABASE_ERROR = "database_error"
+    FORBIDDEN = "forbidden"
     UNKNOWN_ERROR = "unknown_error"
 
     @classmethod

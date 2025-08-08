@@ -1,7 +1,7 @@
 from django.db import transaction
-from django.db.models import Prefetch
 from django.utils import timezone
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
@@ -11,6 +11,7 @@ from django.db.models import Count
 from src.library.dtos.borrow import BorrowDTO, OverdueBorrowsDTO, BorrowCreateDTO, TopBorrowerSerializer
 from src.library.dtos.library import LibraryRecordCreateDTO, LibraryCreateDTO
 from src.library.models import Borrow
+from src.permissions import CanGetTopBorrower, IsWorkHour
 from src.users.dtos import CreateUserDTO
 from src.users.models import User
 
@@ -23,6 +24,11 @@ class BorrowViewSet(ModelViewSet):
         'library_record__member'
     )
     serializer_class = BorrowDTO
+
+    def get_permissions(self):
+        if self.action == 'get_top_borrower':
+            return [IsAuthenticated(), CanGetTopBorrower()]
+        return [IsAuthenticated(), IsWorkHour()]
 
     @action(methods=["get"], detail=False, url_path="overdue")
     def get_overdue_borrows(self, request: Request) -> Response:
@@ -57,14 +63,6 @@ class BorrowViewSet(ModelViewSet):
         user_data = request.data.get("user")
         lib_data = request.data.get("library")
         borrow_data = request.data.get("borrow")
-
-        """
-        data = {
-            'user': {...},
-            'library': {...},
-            'borrow': {...},
-        }
-        """
 
         if not user_data or not lib_data or not borrow_data:
             raise ValueError("Данные запроса не полные, должны быть пользователь, библиотека, запись займа")

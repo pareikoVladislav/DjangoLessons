@@ -1,17 +1,20 @@
 from typing import Dict, Any
 
 from django.db import IntegrityError
+from rest_framework import exceptions
 from rest_framework.serializers import ValidationError
 from rest_framework.pagination import PageNumberPagination
 
 from src.library.dtos.book import BookListDTO, BookDetailedDTO, BookCreateDTO
 from src.library.repositories.book import BookRepository
 from src.shared.base_service_response import ServiceResponse, ErrorType
+from src.shared.permission_checkers import PermissionsChecker
 
 
 class BookService:
     def __init__(self):
         self.book_repo = BookRepository()
+        self.permission_checker = PermissionsChecker
         self.paginator = PageNumberPagination()
         self.paginator.page_size = 5
         self.paginator.page_size_query_param = 'page_size'
@@ -33,18 +36,6 @@ class BookService:
 
             results = self.paginator.paginate_queryset(books_queryset, request, view=None)
 
-            # books_queryset
-            """
-            {
-                "obj_count": books_queryset.count(),
-                "cur_page": <cur page>,
-                "prev": <prev link>,
-                "next": <next link>,
-                "results": [
-                    **book_queryset
-                ],
-            }
-            """
             include_related = query_params.get('include_related') == 'true'
             serializer = BookListDTO(results, many=True, context={"include_related":include_related})
 
@@ -62,9 +53,16 @@ class BookService:
                 error_type=ErrorType.UNKNOWN_ERROR
             )
 
-    def get_book_by_id(self, book_id: int) -> ServiceResponse:
+    def get_book_by_id(self, book_id: int, request, permission_classes) -> ServiceResponse:
         try:
             book = self.book_repo.get_by_id(book_id)
+
+            self.permission_checker(
+                permission_classes=permission_classes
+            ).check_object_permissions(
+                request,
+                book
+            )
 
             if book is None:
                 return ServiceResponse(
@@ -78,6 +76,13 @@ class BookService:
             return ServiceResponse(
                 success=True,
                 data=serializer.data
+            )
+
+        except exceptions.PermissionDenied as e:
+            return ServiceResponse(
+                success=False,
+                message=f"Error retrieving book: {str(e)}",
+                error_type=ErrorType.UNKNOWN_ERROR
             )
 
         except Exception as e:
@@ -133,15 +138,23 @@ class BookService:
                 error_type=ErrorType.UNKNOWN_ERROR
             )
 
-    def update_book(self, book_id: int, data: Dict[str, Any], partial: bool = False) -> ServiceResponse:
-        if not self.book_exists(book_id):
-            return ServiceResponse(
-                success=False,
-                message=f"Book with ID {book_id} not found",
-                error_type=ErrorType.NOT_FOUND
+    def update_book(
+            self,
+            book_id: int,
+            data: Dict[str, Any],
+            permission_classes,
+            request,
+            partial: bool = False) -> ServiceResponse:
+        try:
+            book = self.book_repo.get_by_id(book_id)
+
+            self.permission_checker(
+                permission_classes=permission_classes
+            ).check_object_permissions(
+                request,
+                book
             )
 
-        try:
             dto_data = BookCreateDTO(data=data, partial=partial)
             dto_data.is_valid(raise_exception=True)
             updated_book = self.book_repo.update(book_id, **dto_data.validated_data)
@@ -152,6 +165,20 @@ class BookService:
                 success=True,
                 data=serializer.data,
                 message="Book updated successfully"
+            )
+
+        except exceptions.PermissionDenied as e:
+            return ServiceResponse(
+                success=False,
+                message=f"Error updating book: {str(e)}",
+                error_type=ErrorType.FORBIDDEN
+            )
+
+        except self.book_repo.model.DoesNotExist:
+            return ServiceResponse(
+                success=False,
+                message=f"Book with ID {book_id} not found",
+                error_type=ErrorType.NOT_FOUND
             )
 
         except ValidationError as e:
@@ -178,20 +205,29 @@ class BookService:
                 error_type=ErrorType.UNKNOWN_ERROR
             )
 
-    def delete_book(self, book_id: int) -> ServiceResponse:
-        if not self.book_exists(book_id):
-            return ServiceResponse(
-                success=False,
-                message=f"Book with ID {book_id} not found",
-                error_type=ErrorType.NOT_FOUND
+    def delete_book(self, book_id: int, request, permission_classes) -> ServiceResponse:
+        try:
+            book = self.book_repo.get_by_id(book_id)
+
+            self.permission_checker(
+                permission_classes=permission_classes
+            ).check_object_permissions(
+                request,
+                book
             )
 
-        try:
-            self.book_repo.delete(book_id)
+            self.book_repo.delete(book)
 
             return ServiceResponse(
                 success=True,
                 message=f"Book with ID {book_id} deleted successfully"
+            )
+
+        except exceptions.PermissionDenied as e:
+            return ServiceResponse(
+                success=False,
+                message=f"Error deleting book: {str(e)}",
+                error_type=ErrorType.FORBIDDEN
             )
 
         except Exception as e:
@@ -200,6 +236,3 @@ class BookService:
                 message=f"Error deleting book: {str(e)}",
                 error_type=ErrorType.UNKNOWN_ERROR
             )
-
-    def book_exists(self, book_id: int) -> bool:
-        return self.book_repo.get_by_id(book_id) is not None

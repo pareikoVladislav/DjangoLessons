@@ -21,10 +21,6 @@ class LibraryRepository(BaseRepository):
 
     def get_books_count_per_library(self):
         try:
-            # books_queryset = self.get_all_with_params(query_params)
-            # return books_queryset.values(
-            #     library=F("libraries__name")).annotate(
-            #     count_books=Count("id", distinct=True))
             return self.model.objects.values(library=F("name")).annotate(count_books=Count('books'))
         except DatabaseError as e:
             raise OperationalError(f"Failed to retrieve {self.model.__name__} objects") from e

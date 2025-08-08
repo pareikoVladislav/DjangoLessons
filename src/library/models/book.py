@@ -68,31 +68,8 @@ class Book(models.Model):
         return f"{self.title}"
 
     class Meta:
-        # db_table = "books"
         verbose_name = "Book"
         verbose_name_plural = "Books"
         ordering = ['-published_date', 'title']
-        # indexes = [
-        #     models.Index(
-        #         fields=['genre', 'language'],
-        #         name='book_genre_lang_idx'
-        #     )
-        # ]
-
         unique_together = ('title', 'published_date')
-
-        # constraints = [
-        #     models.UniqueConstraint(
-        #         fields=['title', 'published_date'],
-        #         name='title_pub_date_unq_cnstrt'
-        #     ),
-        #     models.CheckConstraint(
-        #         check=models.Q(pages__gte=1),
-        #         name='book_pages_gte_1_chk_cnstrt'
-        #     )
-        # ]
-        # permissions = []
-
-        # abstract = True
-
         get_latest_by = '-published_date'

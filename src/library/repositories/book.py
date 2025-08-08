@@ -1,7 +1,6 @@
 from django.db import DatabaseError, OperationalError
-from django.db.models import Count, F
 
-from src.library.models import Book, Library
+from src.library.models import Book
 from src.shared.base_repo import BaseRepository
 
 

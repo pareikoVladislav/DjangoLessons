@@ -14,6 +14,7 @@ from src.library.models import (
     LibraryRecord
 )
 
+
 class BookInline(admin.TabularInline):
     model = Book
 
@@ -38,19 +39,9 @@ class BookInline(admin.TabularInline):
     verbose_name = "Author's Book"
     verbose_name_plural = "Author's Books"
 
-    # fieldsets = (
-    #     ('Base Info', {
-    #         'fields': ('title', 'description', 'pages', 'language', 'publisher')
-    #     }),
-    #     ('Categories', {
-    #         'fields': ('genre', 'category', 'libraries')
-    #     })
-    # )
-
     def formfield_for_choice_field(
-        self, db_field, request, **kwargs
+            self, db_field, request, **kwargs
     ):
-
         if db_field.name == 'genre':
             kwargs['widget'] = admin.widgets.AdminRadioSelect()
 
@@ -81,11 +72,9 @@ class BorrowInline(admin.TabularInline):
     can_delete = False
 
 
-
 @admin.register(LibraryRecord)
 class LibraryRecordAdmin(admin.ModelAdmin):
     inlines = [BorrowInline]
-
 
 
 @admin.register(Book)
@@ -115,9 +104,8 @@ class BookAdmin(admin.ModelAdmin):
     list_editable = ['genre', 'language']
 
     list_per_page = 10
-    # list_max_show_all = 25
 
-    list_select_related = ['category',]
+    list_select_related = ['category', ]
 
     fieldsets = (
         (
@@ -128,19 +116,18 @@ class BookAdmin(admin.ModelAdmin):
         (
             "Publication Details", {
             "fields": ("publisher", "pages", "language"),
-            "classes": ("collapse", )
+            "classes": ("collapse",)
         }
         ),
         (
             "Classification", {
             "fields": ("category", "libraries"),
-            "classes": ("collapse", )
+            "classes": ("collapse",)
         }
         ),
     )
 
     actions = ['export_to_csv', 'set_genre_to_fiction']
-
 
     @admin.action(description="Export selected books to CSV")
     def export_to_csv(self, request, queryset):
@@ -155,16 +142,11 @@ class BookAdmin(admin.ModelAdmin):
 
         for book in queryset:
             writer.writerow([
-                book.title, book.genre or 'N/A', book.pages or 0, book.language, book.published_date, book.category.title
+                book.title, book.genre or 'N/A', book.pages or 0, book.language, book.published_date,
+                book.category.title
             ])
 
         return response
-
-    # def get_queryset(self, request):
-    #     Book.objects.filter(...).select_related(...).prefetch_related(...)
-    #
-    # def get_action(self, action):
-    #     ...
 
     @admin.action(description="Set genre to fiction")
     def set_genre_to_fiction(self, request, queryset):
@@ -242,7 +224,6 @@ class BorrowAdmin(admin.ModelAdmin):
         return mark_safe(
             '<span style="color: green;">On time</span>'
         )
-
 
 
 admin.site.register(Post)
