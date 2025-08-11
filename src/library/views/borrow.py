@@ -12,7 +12,7 @@ from django.db.models import Count
 from src.library.dtos.borrow import BorrowDTO, OverdueBorrowsDTO, BorrowCreateDTO, TopBorrowerSerializer, BorrowReturnSerializer
 from src.library.dtos.library import LibraryRecordCreateDTO, LibraryCreateDTO
 from src.library.models import Borrow
-from src.permissions import CanGetTopBorrower, IsWorkHour
+from src.permissions.view_permissions import CanGetTopBorrower, IsWorkHour
 from src.users.dtos import CreateUserDTO
 from src.users.models import User
 
