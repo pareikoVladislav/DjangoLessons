@@ -1,41 +1,55 @@
 from datetime import timezone
 
+from django.conf import settings
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.models import PermissionsMixin, UserManager
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
-
 from src.choices.base import Gender, Role
 
 
+class Library(models.Model):
+    name = models.CharField(max_length=255)
+
+
+class LibraryRecord(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    library = models.ForeignKey(Library, on_delete=models.CASCADE)
+
+
+class Borrow(models.Model):
+    library_record = models.ForeignKey(LibraryRecord, on_delete=models.CASCADE)
+    borrow_date = models.DateField()
+
+
 class User(AbstractBaseUser, PermissionsMixin):
-    username: str = models.CharField(
+    username = models.CharField(
         max_length=50,
         unique=True,
     )
-    first_name: str = models.CharField(
+    first_name = models.CharField(
         max_length=50,
     )
-    last_name: str = models.CharField(
+    last_name = models.CharField(
         max_length=50
     )
-    email: str = models.EmailField(
+    email = models.EmailField(
         unique=True,
     )
-    phone: str = models.CharField(
+    phone = models.CharField(
         max_length=25,
         null=True,
         blank=True,
     )
-    gender: Gender = models.CharField(
+    gender = models.CharField(
         choices=Gender.choices(),
         max_length=15,
     )
-    birth_date: timezone = models.DateField(
+    birth_date = models.DateField(
         null=True,
         blank=True,
     )
-    age: int = models.PositiveSmallIntegerField(
+    age = models.PositiveSmallIntegerField(
         validators=[
             MinValueValidator(6),
             MaxValueValidator(120)
@@ -43,18 +57,18 @@ class User(AbstractBaseUser, PermissionsMixin):
         null=True,
         blank=True,
     )
-    role: Role = models.CharField(
+    role = models.CharField(
         max_length=50,
         choices=Role.choices(),
         default=Role.reader
     )
-    is_active: bool = models.BooleanField(
+    is_active = models.BooleanField(
         default=True,
     )
-    is_staff: bool = models.BooleanField(
+    is_staff = models.BooleanField(
         default=False,
     )
-    date_joined: timezone = models.DateTimeField(
+    date_joined = models.DateTimeField(
         auto_now_add=True,
     )
     libraries = models.ManyToManyField(
