@@ -13,6 +13,7 @@ from src.library.dtos.borrow import BorrowDTO, OverdueBorrowsDTO, BorrowCreateDT
 from src.library.dtos.library import LibraryRecordCreateDTO, LibraryCreateDTO
 from src.library.models import Borrow
 from src.permissions import CanGetTopBorrower, IsWorkHour
+from src.shared.paginators import CustomCursorPaginator
 from src.users.dtos import CreateUserDTO
 from src.users.models import User
 
@@ -25,9 +26,13 @@ class BorrowViewSet(ModelViewSet):
         'library_record__member'
     )
     serializer_class = BorrowDTO
+    pagination_class = CustomCursorPaginator
+    filterset_fields = ['is_returned', 'return_date__lt']
 
     def get_permissions(self):
-        if self.action == 'get_top_borrower':
+        if self.action in ['list', 'create']:
+            return [IsAuthenticated()]
+        elif self.action == 'get_top_borrower':
             return [IsAuthenticated(), CanGetTopBorrower()]
         return [IsAuthenticated(), IsWorkHour()]
 
