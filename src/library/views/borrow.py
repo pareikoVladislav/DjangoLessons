@@ -1,7 +1,8 @@
 from django.db import transaction
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema, OpenApiResponse
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, DjangoModelPermissions
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
@@ -30,11 +31,9 @@ class BorrowViewSet(ModelViewSet):
     filterset_fields = ['is_returned', 'return_date__lt']
 
     def get_permissions(self):
-        if self.action in ['list', 'create']:
-            return [IsAuthenticated()]
-        elif self.action == 'get_top_borrower':
-            return [IsAuthenticated(), CanGetTopBorrower()]
-        return [IsAuthenticated(), IsWorkHour()]
+        if self.action == 'get_top_borrower':
+            return [CanGetTopBorrower()]
+        return [IsWorkHour()]
 
     @action(methods=["get"], detail=False, url_path="overdue")
     def get_overdue_borrows(self, request: Request) -> Response:
