@@ -1,6 +1,6 @@
 from typing import Any
 
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
 from django.db import DatabaseError, transaction
 
 from src.library.dtos.statistics import LibraryStatisticDTO
@@ -56,9 +56,23 @@ class LibraryService:
             transaction.commit()
             return created_users
 
-        except Exception as e:
+        except Exception:
             transaction.rollback()
             raise
 
         finally:
             transaction.set_autocommit(True)
+
+    def check_user_is_member(self, library_id: int, user_id: int) -> bool:
+        """
+        Проверяет, является ли пользователь членом библиотеки.
+        Если нет — выбрасывает PermissionDenied.
+        """
+        is_member = self.library_record_repo.filter(
+            library_id=library_id,
+            member_id=user_id
+        ).exists()
+
+        if not is_member:
+            raise PermissionDenied("Вы не являетесь членом этой библиотеки.")
+        return True
