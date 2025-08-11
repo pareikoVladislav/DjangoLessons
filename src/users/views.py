@@ -118,3 +118,28 @@ class LoginUserAPIView(APIView):
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+
+class LogoutUserAPIView(APIView):
+
+    def post(self, request: Request, *args, **kwargs) -> Response:
+        try:
+            refresh_token = request.COOKIES.get('refresh')
+
+            if refresh_token:
+                token = RefreshToken(refresh_token)
+
+                token.blacklist()
+
+            response = Response(status=status.HTTP_200_OK)
+        except Exception as e:
+            response = Response(
+                data={
+                    "error": str(e)
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        finally:
+            response.delete_cookie('access')
+            response.delete_cookie('refresh')
+            return response
