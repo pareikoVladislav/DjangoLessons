@@ -157,7 +157,7 @@ class BookService:
 
             dto_data = BookCreateDTO(data=data, partial=partial)
             dto_data.is_valid(raise_exception=True)
-            updated_book = self.book_repo.update(book_id, **dto_data.validated_data)
+            updated_book = self.book_repo.update(book, **dto_data.validated_data)
 
             serializer = BookDetailedDTO(updated_book)
 

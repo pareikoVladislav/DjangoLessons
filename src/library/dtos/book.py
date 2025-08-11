@@ -2,8 +2,6 @@ from typing import Any
 
 from rest_framework import serializers
 
-from src.library.dtos.author import NestedAuthorShortInfoDTO
-from src.library.dtos.library import NestedLibraryShortInfoDTO
 from src.library.models import Book
 from src.users.models import User
 
