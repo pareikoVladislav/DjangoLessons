@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from src.choices.base import Role
 from src.users.models import User
 
 
@@ -82,6 +83,11 @@ class CreateUserDTO(serializers.ModelSerializer):
 
     def create(self, validated_data: dict) -> User:
         password = validated_data.pop('password')
+        role = validated_data.get('role')
+
+        if role == Role.employee.lower():
+            validated_data['is_staff'] = True
+
         user = User.objects.create(**validated_data)
         user.set_password(password)
 

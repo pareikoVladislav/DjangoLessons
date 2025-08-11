@@ -14,7 +14,7 @@ from src.permissions import IsOwnerOrReadOnly
 class CategoryViewSet(ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategoryDTO
-    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
+    permission_classes = [IsAuthenticated]
 
     @action(methods=['get'], detail=False, url_path='statistic')
     def get_category_statistic(self, request: Request) -> Response:
