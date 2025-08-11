@@ -5,6 +5,10 @@ from rest_framework.permissions import (
 
 class CanGetTopBorrower(BasePermission):
     def has_permission(self, request, view):
+        print("="*50)
+        print(request.user)
+        print("="*50)
+
         return request.user.has_perm('library.can_get_top_borrower')
 
 

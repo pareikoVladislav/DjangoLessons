@@ -51,7 +51,7 @@ class BorrowViewSet(ModelViewSet):
     def get_top_borrower(self, request):
         top_user = (
             User.objects
-            .annotate(books_borrowed=Count('borrows__borrows'))
+            .annotate(books_borrowed=Count('library_records__borrows'))
             .order_by('-books_borrowed')
             .filter(books_borrowed__gt=0)
             [:5]
