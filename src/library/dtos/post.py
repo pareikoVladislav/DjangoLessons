@@ -10,4 +10,11 @@ class PostDTO(serializers.ModelSerializer):
         extra_kwargs = {
             'moderated': {'required': False, 'default': False},
             'id': {'read_only': True, 'required': False},
+            'author': {'read_only': True, 'required': False},
         }
+
+    def create(self, validated_data):
+        validated_data['author'] = self.context['request'].user
+
+        post = Post.objects.create(**validated_data)
+        return post

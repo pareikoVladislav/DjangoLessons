@@ -6,7 +6,9 @@ from django.db import models
 class Borrow(models.Model):
     book: models.ForeignKey = models.ForeignKey(
         'Book',
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='borrows'
     )
     borrow_date = models.DateField(
@@ -22,11 +24,18 @@ class Borrow(models.Model):
         related_name='borrows'
     )
 
+    class Meta:
+        permissions = [
+            ('can_get_top_borrower', 'Can get top borrower'),
+        ]
+
     @property
     def is_overdue(self):
         if not self.is_returned and timezone.now() > self.return_date:
             return True
         return False
+
+
 
     def __str__(self):
         return f"Reader {self.book.title} - Book {self.library_record.member.last_name}"
@@ -35,7 +44,7 @@ class Borrow(models.Model):
 class LibraryRecord(models.Model):
     member: models.ForeignKey = models.ForeignKey(
         'users.User',
-        on_delete=models.PROTECT,  # если пользователь что-то взял, то пока он не вернет, нельзя удалить))
+        on_delete=models.PROTECT,
         related_name='library_records'
     )
     library: models.ForeignKey = models.ForeignKey(

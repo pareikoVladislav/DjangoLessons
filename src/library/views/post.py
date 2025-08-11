@@ -6,6 +6,10 @@ from rest_framework.permissions import IsAuthenticated
 
 
 class PostViewSet(ModelViewSet):
-    queryset = Post.objects.all()
     serializer_class = PostDTO
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Post.objects.filter(
+            author=self.request.user
+        )

@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema, OpenApiResponse
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -5,7 +6,9 @@ from rest_framework.views import APIView
 
 from rest_framework.permissions import IsAuthenticated
 
-
+from src.library.dtos.book import BookDetailedDTO, BookCreateDTO, BookListDTO
+from src.library.models import Book
+from src.permissions import IsOwnerOrReadOnly
 from src.shared.base_service_response import ErrorType
 from src.library.services.book import BookService
 from src.utils.converters import validate_and_convert_choices
@@ -15,6 +18,16 @@ class BookListCreateAPIView(APIView):
     permission_classes = [IsAuthenticated]
     books_service = BookService()
 
+    @extend_schema(
+        operation_id="get_books_list",
+        summary="Get Books",
+        responses={
+            200: BookListDTO,
+            401: OpenApiResponse(description="Unauthorized"),
+            500: OpenApiResponse(description="Error")
+        },
+        tags=["Books"]
+    )
     def get(self, request: Request) -> Response:
         query_params = request.query_params
 
@@ -30,7 +43,19 @@ class BookListCreateAPIView(APIView):
                 data={'error': result.message},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
+    @extend_schema(
+        operation_id="create_book",
+        summary="Create new Book",
+        request=BookCreateDTO,
+        responses={
+            201: BookDetailedDTO,
+            400: OpenApiResponse(description="Invalid data provided"),
+            401: OpenApiResponse(description="Unauthorized"),
+            403: OpenApiResponse(description="Forbidden"),
+            500: OpenApiResponse(description="Error")
+        },
+        tags=["Books"]
+    )
     def post(self, request: Request) -> Response:
         book_data = request.data.copy()
 
@@ -69,11 +94,26 @@ class BookListCreateAPIView(APIView):
 
 
 class BookRetrieveUpdateDestroyAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
     books_service = BookService()
 
+    @extend_schema(
+        operation_id="get_book_by_id",
+        summary="Get Book",
+        responses={
+            200: BookDetailedDTO,
+            401: OpenApiResponse(description="Unauthorized"),
+            403: OpenApiResponse(description="Forbidden"),
+            404: OpenApiResponse(description="Not Found")
+        },
+        tags=["Books"]
+    )
     def get(self, request: Request, book_id: int) -> Response:
-        result = self.books_service.get_book_by_id(book_id)
+        result = self.books_service.get_book_by_id(
+            book_id,
+            request,
+            self.permission_classes
+        )
 
         if result.success:
             return Response(
@@ -89,6 +129,19 @@ class BookRetrieveUpdateDestroyAPIView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+    @extend_schema(
+        operation_id="update_book_by_id",
+        summary="Update Book",
+        request=BookCreateDTO,
+        responses={
+            200: BookDetailedDTO,
+            403: OpenApiResponse(description="Forbidden"),
+            404: OpenApiResponse(description="Not Found"),
+            400: OpenApiResponse(description="Invalid data provided"),
+            500: OpenApiResponse(description="Error")
+        },
+        tags=["Books"]
+    )
     def put(self, request: Request, book_id: int) -> Response:
         update_data = request.data.copy()
 
@@ -102,7 +155,12 @@ class BookRetrieveUpdateDestroyAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        result = self.books_service.update_book(book_id, update_data)
+        result = self.books_service.update_book(
+            book_id,
+            update_data,
+            self.permission_classes,
+            request,
+        )
 
         if result.success:
             return Response(
@@ -128,6 +186,20 @@ class BookRetrieveUpdateDestroyAPIView(APIView):
                 },
                 status=response_status
             )
+
+    @extend_schema(
+        operation_id="update_book_by_id",
+        summary="Update Book",
+        request=BookCreateDTO,
+        responses={
+            200: BookDetailedDTO,
+            403: OpenApiResponse(description="Forbidden"),
+            404: OpenApiResponse(description="Not Found"),
+            400: OpenApiResponse(description="Invalid data provided"),
+            500: OpenApiResponse(description="Error")
+        },
+        tags=["Books"]
+    )
     def patch(self, request: Request, book_id: int) -> Response:
         update_data = request.data.copy()
 
@@ -141,7 +213,13 @@ class BookRetrieveUpdateDestroyAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        result = self.books_service.update_book(book_id, update_data, partial=True)
+        result = self.books_service.update_book(
+            book_id,
+            update_data,
+            self.permission_classes,
+            request,
+            partial=True
+        )
 
         if result.success:
             return Response(
@@ -167,8 +245,24 @@ class BookRetrieveUpdateDestroyAPIView(APIView):
                 },
                 status=response_status
             )
+
+    @extend_schema(
+        operation_id="delete_book_by_id",
+        summary="Delete Book",
+        responses={
+            200: OpenApiResponse(description="Book Deleted Successfully"),
+            403: OpenApiResponse(description="Forbidden"),
+            404: OpenApiResponse(description="Not Found"),
+            500: OpenApiResponse(description="Error")
+        },
+        tags=["Books"]
+    )
     def delete(self, request: Request, book_id: int) -> Response:
-        result = self.books_service.delete_book(book_id)
+        result = self.books_service.delete_book(
+            book_id,
+            request,
+            self.permission_classes,
+        )
 
         if result.success:
             return Response(
@@ -176,9 +270,13 @@ class BookRetrieveUpdateDestroyAPIView(APIView):
                 status=status.HTTP_200_OK
             )
         else:
-            response_status = (status.HTTP_404_NOT_FOUND
-                               if result.error_type == ErrorType.NOT_FOUND
-                               else status.HTTP_500_INTERNAL_SERVER_ERROR)
+            if result.error_type == ErrorType.NOT_FOUND:
+                response_status = status.HTTP_404_NOT_FOUND
+            elif result.error_type == ErrorType.FORBIDDEN:
+                response_status = status.HTTP_403_FORBIDDEN
+            else:
+                response_status = status.HTTP_500_INTERNAL_SERVER_ERROR
+
             return Response(
                 data={'error': result.message},
                 status=response_status
