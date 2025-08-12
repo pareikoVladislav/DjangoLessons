@@ -58,7 +58,15 @@ ROOT_URLCONF = 'core.urls'
 
 AUTH_USER_MODEL = 'users.User'
 
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+
+if DEBUG:
+    EMAIL_HOST = "0.0.0.0"
+    EMAIL_PORT = 8025
+# EMAIL_USE_TLS = False
+# EMAIL_HOST_USER = "your smtp user"
+# EMAIL_HOST_PASSWORD = "your smtp user's password"
 
 TEMPLATES = [
     {

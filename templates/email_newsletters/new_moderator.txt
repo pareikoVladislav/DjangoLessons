@@ -1,0 +1,10 @@
+Greetings, Administrator!
+
+I would like to inform you that a new moderator has been
+registered in the system! The nickname of the new moderator is {{ username }}.
+You can connect with him via his email: {{ email }}
+
+
+
+Best wishes,
+Library Alert System.
