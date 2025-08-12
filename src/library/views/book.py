@@ -3,20 +3,21 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.pagination import PageNumberPagination
 
 from src.library.dtos.book import BookDetailedDTO, BookCreateDTO, BookListDTO
 from src.library.models import Book
-from src.permissions import IsOwnerOrReadOnly
 from src.shared.base_service_response import ErrorType
 from src.library.services.book import BookService
 from src.utils.converters import validate_and_convert_choices
+from src.permissions.view_permissions import IsPublisherOrStuff
 
 
 class BookListCreateAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsPublisherOrStuff]
     books_service = BookService()
+    pagination_class = PageNumberPagination
 
     @extend_schema(
         operation_id="get_books_list",
@@ -94,7 +95,7 @@ class BookListCreateAPIView(APIView):
 
 
 class BookRetrieveUpdateDestroyAPIView(APIView):
-    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
+    permission_classes = [IsPublisherOrStuff]
     books_service = BookService()
 
     @extend_schema(

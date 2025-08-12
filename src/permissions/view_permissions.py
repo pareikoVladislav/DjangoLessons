@@ -29,3 +29,18 @@ class IsOwnerOrReadOnly(BasePermission):
             return True
         else:
             return request.user.id == obj.publisher.id
+
+
+class IsPublisherOrStuff(BasePermission):
+
+    def has_permission(self, request, view):
+        if request.method in SAFE_METHODS:
+            return True
+        return request.user and request.user.is_authenticated
+
+    def has_object_permission(self, request, view, obj):
+        if request.method in SAFE_METHODS:
+            return True
+        if request.user and request.user.is_staff:
+            return True
+        return getattr(obj, 'publisher', None) == getattr(request.user, 'id', None)
