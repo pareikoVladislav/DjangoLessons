@@ -25,7 +25,7 @@ class BaseRepository:
             obj = self.model.objects.get(id=id_)
             return obj
         except self.model.DoesNotExist:
-            return None
+            raise self.model.DoesNotExist(f"Object with ID {id_} not found")
         except DatabaseError as e:
             raise OperationalError(f"Failed to retrieve {self.model.__name__} with ID {id_}") from e
 

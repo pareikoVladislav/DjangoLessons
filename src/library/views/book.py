@@ -6,12 +6,11 @@ from rest_framework.views import APIView
 
 from rest_framework.permissions import IsAuthenticated
 
+from src.choices.base import Genre, Language
 from src.library.dtos.book import BookDetailedDTO, BookCreateDTO, BookListDTO
-from src.library.models import Book
-from src.permissions import IsOwnerOrReadOnly
 from src.shared.base_service_response import ErrorType
 from src.library.services.book import BookService
-from src.utils.converters import validate_and_convert_choices
+from src.utils.converters import validate_and_convert_choices, normalize_choice
 
 
 class BookListCreateAPIView(APIView):
@@ -145,7 +144,11 @@ class BookRetrieveUpdateDestroyAPIView(APIView):
     def put(self, request: Request, book_id: int) -> Response:
         update_data = request.data.copy()
 
+        normalize_choice("genre", Genre, update_data)
+        normalize_choice("language", Language, update_data)
+
         choice_errors = validate_and_convert_choices(update_data)
+
         if choice_errors:
             return Response(
                 data={

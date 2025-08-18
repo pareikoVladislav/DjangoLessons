@@ -146,24 +146,27 @@ class BookService:
             request,
             partial: bool = False) -> ServiceResponse:
         try:
-            book = self.book_repo.get_by_id(book_id)
+            try:
+                book = self.book_repo.get_by_id(book_id)
+            except self.book_repo.model.DoesNotExist:
+                return ServiceResponse(
+                    success=False,
+                    message=f"Book with ID {book_id} not found",
+                    error_type=ErrorType.NOT_FOUND
+                )
 
             self.permission_checker(
                 permission_classes=permission_classes
-            ).check_object_permissions(
-                request,
-                book
-            )
+            ).check_object_permissions(request, book)
 
-            dto_data = BookCreateDTO(data=data, partial=partial)
-            dto_data.is_valid(raise_exception=True)
-            updated_book = self.book_repo.update(book, **dto_data.validated_data)
+            serializer = BookCreateDTO(instance=book, data=data, partial=partial)
+            serializer.is_valid(raise_exception=True)
+            updated_book = serializer.save()
 
-            serializer = BookDetailedDTO(updated_book)
-
+            response = BookDetailedDTO(updated_book)
             return ServiceResponse(
                 success=True,
-                data=serializer.data,
+                data=response.data,
                 message="Book updated successfully"
             )
 
@@ -172,13 +175,6 @@ class BookService:
                 success=False,
                 message=f"Error updating book: {str(e)}",
                 error_type=ErrorType.FORBIDDEN
-            )
-
-        except self.book_repo.model.DoesNotExist:
-            return ServiceResponse(
-                success=False,
-                message=f"Book with ID {book_id} not found",
-                error_type=ErrorType.NOT_FOUND
             )
 
         except ValidationError as e:
