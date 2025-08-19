@@ -70,7 +70,7 @@ jobs:
         run: |
           RAW="${{ secrets.EC2_HOST }}"; HOST=$(printf '%s' "$RAW" | tr -d '\r' | awk '{print $1}' | sed 's/^"//; s/"$//')
           rsync -az --delete \
-            --exclude '.git/' --exclude '.github/' \
+            --exclude '.git/' --exclude '.github/' --exclude 'static/' \
             -e "ssh -i eic_key -o IdentitiesOnly=yes" \
             ./ ec2-user@"$HOST":"${{ secrets.APP_DIR }}"/
 
