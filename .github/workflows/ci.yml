@@ -1,0 +1,91 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [ "specific_branch" ]
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      EC2_USER: ${{ secrets.EC2_USER }}
+      EC2_HOST: ${{ secrets.EC2_HOST }}
+      APP_DIR: /opt/app
+      REPO_URI: ${{ secrets.REPO_URI }}
+
+    steps:
+      - name: Checkout (for SHA only)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prepare SSH to EC2
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/ec2.pem
+          chmod 600 ~/.ssh/ec2.pem
+          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
+
+      - name: Ensure repo exists or update on EC2
+        run: |
+          ssh -i ~/.ssh/ec2.pem "$EC2_USER@$EC2_HOST" bash -s <<'EOSH'
+          set -euo pipefail
+          APP_DIR="/opt/app"
+          REPO_URI=${{ secrets.REPO_URI }}
+
+          sudo install -d -o "$USER" -g "$USER" -m 775 "$APP_DIR"
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+
+          if [ ! -d "$APP_DIR/.git" ]; then
+            git clone "$REPO_URI" "$APP_DIR"
+          else
+            cd "$APP_DIR"
+            git remote set-url origin "$REPO_URI"
+            git fetch --prune origin
+            git checkout -B main origin/main
+            git reset --hard origin/main
+            git clean -fd
+          fi
+          EOSH
+
+      - name: Create .env locally from GitHub Secrets
+        run: |
+          cat > .env <<EOF
+          DJANGO_SETTINGS_MODULE=core.settings
+          DEBUG=False
+          DJANGO_SECRET_KEY=${{ secrets.SECRET_KEY }}
+          TIME_ZONE=Asia/Tbilisi
+
+          DB_NAME=${{ secrets.DB_NAME }}
+          DB_USER=${{ secrets.DB_USER }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          DB_HOST=${{ secrets.DB_HOST }}
+          DB_PORT=${{ secrets.DB_PORT }}
+
+          ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }}
+          EOF
+
+      - name: Upload .env to EC2
+        run: |
+          scp -i ~/.ssh/ec2.pem -o StrictHostKeyChecking=yes .env "$EC2_USER@$EC2_HOST:$APP_DIR/.env"
+
+      - name: Build and restart containers on EC2
+        run: |
+          ssh -i ~/.ssh/ec2.pem "$EC2_USER@$EC2_HOST" bash -s <<'EOSH'
+          set -euo pipefail
+          APP_DIR="/opt/app"
+          cd "$APP_DIR"
+          docker compose --env-file .env pull
+          docker compose --env-file .env up -d --build
+          docker system prune -f
+          EOSH
+
+      - name: Show running containers
+        run: |
+          ssh -i ~/.ssh/ec2.pem "$EC2_USER@$EC2_HOST" "docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
