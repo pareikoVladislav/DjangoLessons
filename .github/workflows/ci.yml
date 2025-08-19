@@ -61,8 +61,6 @@ jobs:
           RAW="${{ secrets.EC2_HOST }}"; HOST=$(printf '%s' "$RAW" | tr -d '\r' | awk '{print $1}' | sed 's/^"//; s/"$//')
           ssh -i eic_key -o IdentitiesOnly=yes ec2-user@"$HOST" bash -s <<'EOSH'
           set -euo pipefail
-          sudo dnf update -y
-          sudo dnf install -y docker docker-compose-plugin git rsync
           sudo systemctl enable --now docker
           sudo usermod -aG docker ec2-user || true
           sudo install -d -o ec2-user -g ec2-user -m 775 /opt/app
