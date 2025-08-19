@@ -79,7 +79,7 @@ jobs:
           cat > .env <<'EOF'
           DJANGO_SETTINGS_MODULE=core.settings
           DEBUG=False
-          DJANGO_SECRET_KEY=${{ secrets.SECRET_KEY }}
+          SECRET_KEY=${{ secrets.SECRET_KEY }}
           TIME_ZONE=Asia/Tbilisi
           DB_NAME=${{ secrets.DB_NAME }}
           DB_USER=${{ secrets.DB_USER }}
