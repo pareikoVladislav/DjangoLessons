@@ -18,12 +18,11 @@ jobs:
       REPO_URI: ${{ secrets.REPO_URI }}
 
     steps:
-      - name: Checkout (for SHA only)
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+        with: { fetch-depth: 0 }
 
-      - name: Start ssh-agent and add EC2 RAW key (if provided)
+      - name: Start ssh-agent and add EC2 key
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: |
@@ -31,41 +30,13 @@ jobs:
 
       - name: Trust EC2 host key
         run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
           ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
+          ssh-add -l
 
-      - name: Show identities in ssh-agent
+      - name: Probe SSH
         run: |
-          ssh-add -l || (echo "No keys in agent" && exit 1)
-
-      - name: Debug keys in agent and secret
-        run: |
-          echo "== agent public keys =="
-          ssh-add -L || true
-          echo "== agent fingerprints =="
-          ssh-add -l || true
-      
-          echo "== derive pub from EC2_SSH secret and fingerprint =="
-          printf '%s' "${{ secrets.EC2_SSH }}" > key.pem
-          chmod 600 key.pem
-          ssh-keygen -y -f key.pem > key.pub
-          ssh-keygen -lf key.pub
-
-      - name: Probe SSH connectivity and user
-        shell: bash
-        run: |
-          set -e
-          for U in "${EC2_USER}" ec2-user ubuntu; do
-            echo "Trying SSH as $U@$EC2_HOST ..."
-            if ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o BatchMode=yes -p 22 "$U@$EC2_HOST" 'echo OK'; then
-              echo "EC2_USER=$U" >> "$GITHUB_ENV"
-              echo "SSH OK as $U"
-              exit 0
-            fi
-          done
-          echo "SSH failed with provided key/user. Likely wrong private key for this instance or wrong user." >&2
-          exit 1
+          ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$EC2_USER@$EC2_HOST" 'echo OK'
 
       - name: Ensure repo exists or update on EC2
         run: |
@@ -73,17 +44,10 @@ jobs:
           set -euo pipefail
           APP_DIR="/opt/app"
           REPO_URI='${{ secrets.REPO_URI }}'
-
-          # git может отсутствовать на чистом AL2023
-          if ! command -v git >/dev/null 2>&1; then
-            sudo dnf install -y git
-          fi
-
+          if ! command -v git >/dev/null 2>&1; then sudo dnf install -y git; fi
           sudo install -d -o "$USER" -g "$USER" -m 775 "$APP_DIR"
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
           ssh-keyscan -H github.com >> ~/.ssh/known_hosts
-
           if [ ! -d "$APP_DIR/.git" ]; then
             git clone "$REPO_URI" "$APP_DIR"
           else
@@ -96,28 +60,26 @@ jobs:
           fi
           EOSH
 
-      - name: Create .env from GitHub Secrets
+      - name: Create .env
         run: |
           cat > .env <<'EOF'
           DJANGO_SETTINGS_MODULE=core.settings
           DEBUG=False
           DJANGO_SECRET_KEY=${{ secrets.SECRET_KEY }}
           TIME_ZONE=Asia/Tbilisi
-
           DB_NAME=${{ secrets.DB_NAME }}
           DB_USER=${{ secrets.DB_USER }}
           DB_PASSWORD=${{ secrets.DB_PASSWORD }}
           DB_HOST=${{ secrets.DB_HOST }}
           DB_PORT=${{ secrets.DB_PORT }}
-
           ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }}
           EOF
 
-      - name: Upload .env to EC2
+      - name: Upload .env
         run: |
           scp -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes .env "$EC2_USER@$EC2_HOST:$APP_DIR/.env"
 
-      - name: Build and restart containers on EC2
+      - name: Build and restart containers
         run: |
           ssh -o IdentitiesOnly=yes "$EC2_USER@$EC2_HOST" bash -s <<'EOSH'
           set -euo pipefail
