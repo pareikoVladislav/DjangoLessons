@@ -47,11 +47,25 @@ services:
       && gunicorn core.wsgi:application --access-logfile - --error-logfile - --bind 0.0.0.0:8000"
     volumes:
       - .:/app/
-    ports:
-      - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
+
+  nginx:
+    image: nginx:alpine
+    depends_on:
+      - webapp
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - .:/app:ro
+    restart: always
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1/healthz || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   db_data:

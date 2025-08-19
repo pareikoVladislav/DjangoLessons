@@ -34,20 +34,22 @@ jobs:
           ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
           ssh-add -l
 
-      - name: Probe SSH
-        run: |
-          ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$EC2_USER@$EC2_HOST" 'echo OK'
-
       - name: Ensure repo exists or update on EC2
         run: |
           ssh -o IdentitiesOnly=yes "$EC2_USER@$EC2_HOST" bash -s <<'EOSH'
           set -euo pipefail
           APP_DIR="/opt/app"
           REPO_URI='${{ secrets.REPO_URI }}'
-          if ! command -v git >/dev/null 2>&1; then sudo dnf install -y git; fi
+
+          # Git может отсутствовать на чистой AL2023
+          if ! command -v git >/dev/null 2>&1; then
+            sudo dnf install -y git
+          fi
+
           sudo install -d -o "$USER" -g "$USER" -m 775 "$APP_DIR"
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
           ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+
           if [ ! -d "$APP_DIR/.git" ]; then
             git clone "$REPO_URI" "$APP_DIR"
           else
@@ -60,22 +62,24 @@ jobs:
           fi
           EOSH
 
-      - name: Create .env
+      - name: Create .env from GitHub Secrets
         run: |
           cat > .env <<'EOF'
           DJANGO_SETTINGS_MODULE=core.settings
           DEBUG=False
           DJANGO_SECRET_KEY=${{ secrets.SECRET_KEY }}
           TIME_ZONE=Asia/Tbilisi
+
           DB_NAME=${{ secrets.DB_NAME }}
           DB_USER=${{ secrets.DB_USER }}
           DB_PASSWORD=${{ secrets.DB_PASSWORD }}
           DB_HOST=${{ secrets.DB_HOST }}
           DB_PORT=${{ secrets.DB_PORT }}
+
           ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }}
           EOF
 
-      - name: Upload .env
+      - name: Upload .env to EC2
         run: |
           scp -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes .env "$EC2_USER@$EC2_HOST:$APP_DIR/.env"
 
