@@ -1,18 +1,57 @@
-version: '3'
+#version: '3'
+#
+#services:
+#
+#  maildev:
+#    image: maildev/maildev
+#    restart: always
+#    environment:
+#      - TZ=Asia/Shanghai
+#      - MAILDEV_WEB_PORT=1080
+#      - MAILDEV_SMTP_PORT=1025
+#    ports:
+#      - "8080:1080"
+#      - "8025:1025"
+#    logging:
+#      driver: "json-file"
+#      options:
+#        max-size: "1m"
+version: '3.8'
 
 services:
-
-  maildev:
-    image: maildev/maildev
-    restart: always
+  db:
+    image: mysql:8.0
     environment:
-      - TZ=Asia/Shanghai
-      - MAILDEV_WEB_PORT=1080
-      - MAILDEV_SMTP_PORT=1025
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -p${DB_PASSWORD} || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  webapp:
+    build: .
+    restart: always
+    env_file:
+      - .env
+    command: >
+      sh -c "python3 manage.py makemigrations \
+      && python3 manage.py migrate \
+      && python3 manage.py collectstatic --noinput \
+      && gunicorn core.wsgi:application --access-logfile - --error-logfile - --bind 0.0.0.0:8000"
+    volumes:
+      - .:/app/
     ports:
-      - "8080:1080"
-      - "8025:1025"
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "1m"
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db_data:
