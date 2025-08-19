@@ -39,6 +39,19 @@ jobs:
         run: |
           ssh-add -l || (echo "No keys in agent" && exit 1)
 
+      - name: Debug keys in agent and secret
+        run: |
+          echo "== agent public keys =="
+          ssh-add -L || true
+          echo "== agent fingerprints =="
+          ssh-add -l || true
+      
+          echo "== derive pub from EC2_SSH secret and fingerprint =="
+          printf '%s' "${{ secrets.EC2_SSH }}" > key.pem
+          chmod 600 key.pem
+          ssh-keygen -y -f key.pem > key.pub
+          ssh-keygen -lf key.pub
+
       - name: Probe SSH connectivity and user
         shell: bash
         run: |
