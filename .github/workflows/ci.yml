@@ -1,4 +1,4 @@
-name: Deploy to EC2
+name: Deploy to EC2 (via AWS EIC)
 
 on:
   push:
@@ -12,88 +12,101 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      EC2_USER: ${{ secrets.EC2_USER }}
-      EC2_HOST: ${{ secrets.EC2_HOST }}
-      APP_DIR: /opt/app
-      REPO_URI: ${{ secrets.REPO_URI }}
+      APP_DIR: ${{ secrets.APP_DIR }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with: { fetch-depth: 0 }
 
-      - name: Start ssh-agent and add EC2 key
-        uses: webfactory/ssh-agent@v0.9.0
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          ssh-private-key: |
-            ${{ secrets.EC2_SSH }}
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ secrets.AWS_REGION }}
 
-      - name: Trust EC2 host key
+      - name: Resolve instance AZ
+        id: az
         run: |
-          mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
-          ssh-add -l
+          AZ=$(aws ec2 describe-instances \
+               --instance-ids "${{ secrets.EC2_INSTANCE_ID }}" \
+               --query 'Reservations[0].Instances[0].Placement.AvailabilityZone' \
+               --output text)
+          echo "AZ=$AZ"
+          echo "AZ=$AZ" >> $GITHUB_OUTPUT
 
-      - name: Ensure repo exists or update on EC2
+      - name: Push ephemeral SSH key via EC2 Instance Connect
         run: |
-          ssh -o IdentitiesOnly=yes "$EC2_USER@$EC2_HOST" bash -s <<'EOSH'
+          ssh-keygen -t ed25519 -N '' -f eic_key -C "gh-actions-ephemeral"
+          aws ec2-instance-connect send-ssh-public-key \
+            --instance-id "${{ secrets.EC2_INSTANCE_ID }}" \
+            --availability-zone "${{ steps.az.outputs.AZ }}" \
+            --instance-os-user "ec2-user" \
+            --ssh-public-key "$(tr -d '\r' < eic_key.pub)"
+
+      - name: Trust EC2 host key (robust)
+        run: |
           set -euo pipefail
-          APP_DIR="/opt/app"
-          REPO_URI='${{ secrets.REPO_URI }}'
-
-          # Git может отсутствовать на чистой AL2023
-          if ! command -v git >/dev/null 2>&1; then
-            sudo dnf install -y git
-          fi
-
-          sudo install -d -o "$USER" -g "$USER" -m 775 "$APP_DIR"
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+          RAW="${{ secrets.EC2_HOST }}"
+          HOST=$(printf '%s' "$RAW" | tr -d '\r' | awk '{print $1}' | sed 's/^"//; s/"$//')
+          ssh-keyscan -T 10 -H "$HOST" >> ~/.ssh/known_hosts
+          IP=$(getent ahostsv4 "$HOST" | awk '/STREAM/ {print $1; exit}') || true
+          if [ -n "${IP:-}" ]; then ssh-keyscan -T 10 -H "$IP" >> ~/.ssh/known_hosts || true; fi
+          chmod 644 ~/.ssh/known_hosts
 
-          if [ ! -d "$APP_DIR/.git" ]; then
-            git clone "$REPO_URI" "$APP_DIR"
-          else
-            cd "$APP_DIR"
-            git remote set-url origin "$REPO_URI"
-            git fetch --prune origin
-            git checkout -B main origin/main
-            git reset --hard origin/main
-            git clean -fd
-          fi
+      - name: Prepare host (docker/git/rsync, app dir)
+        run: |
+          RAW="${{ secrets.EC2_HOST }}"; HOST=$(printf '%s' "$RAW" | tr -d '\r' | awk '{print $1}' | sed 's/^"//; s/"$//')
+          ssh -i eic_key -o IdentitiesOnly=yes ec2-user@"$HOST" bash -s <<'EOSH'
+          set -euo pipefail
+          sudo systemctl enable --now docker
+          sudo usermod -aG docker ec2-user || true
+          sudo install -d -o ec2-user -g ec2-user -m 775 /opt/app
           EOSH
 
-      - name: Create .env from GitHub Secrets
+      - name: Rsync project to EC2
+        run: |
+          RAW="${{ secrets.EC2_HOST }}"; HOST=$(printf '%s' "$RAW" | tr -d '\r' | awk '{print $1}' | sed 's/^"//; s/"$//')
+          rsync -az --delete \
+            --exclude '.git/' --exclude '.github/' \
+            -e "ssh -i eic_key -o IdentitiesOnly=yes" \
+            ./ ec2-user@"$HOST":"${{ secrets.APP_DIR }}"/
+
+      - name: Create .env
         run: |
           cat > .env <<'EOF'
           DJANGO_SETTINGS_MODULE=core.settings
           DEBUG=False
           DJANGO_SECRET_KEY=${{ secrets.SECRET_KEY }}
           TIME_ZONE=Asia/Tbilisi
-
           DB_NAME=${{ secrets.DB_NAME }}
           DB_USER=${{ secrets.DB_USER }}
           DB_PASSWORD=${{ secrets.DB_PASSWORD }}
           DB_HOST=${{ secrets.DB_HOST }}
           DB_PORT=${{ secrets.DB_PORT }}
-
           ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }}
           EOF
-
-      - name: Upload .env to EC2
+      - name: Upload .env
         run: |
-          scp -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes .env "$EC2_USER@$EC2_HOST:$APP_DIR/.env"
+          RAW="${{ secrets.EC2_HOST }}"; HOST=$(printf '%s' "$RAW" | tr -d '\r' | awk '{print $1}' | sed 's/^"//; s/"$//')
+          scp -i eic_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            .env ec2-user@"$HOST":"${{ secrets.APP_DIR }}"/.env
 
-      - name: Build and restart containers
+      - name: Build and (re)start containers
         run: |
-          ssh -o IdentitiesOnly=yes "$EC2_USER@$EC2_HOST" bash -s <<'EOSH'
+          RAW="${{ secrets.EC2_HOST }}"; HOST=$(printf '%s' "$RAW" | tr -d '\r' | awk '{print $1}' | sed 's/^"//; s/"$//')
+          ssh -i eic_key -o IdentitiesOnly=yes ec2-user@"$HOST" bash -s <<'EOSH'
           set -euo pipefail
-          APP_DIR="/opt/app"
-          cd "$APP_DIR"
-          docker compose --env-file .env pull
-          docker compose --env-file .env up -d --build
-          docker system prune -f
+          cd /opt/app
+          sudo docker compose --env-file .env pull
+          sudo docker compose --env-file .env up -d --build
+          sudo docker system prune -f
           EOSH
 
       - name: Show running containers
         run: |
-          ssh -o IdentitiesOnly=yes "$EC2_USER@$EC2_HOST" "docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
+          RAW="${{ secrets.EC2_HOST }}"; HOST=$(printf '%s' "$RAW" | tr -d '\r' | awk '{print $1}' | sed 's/^"//; s/"$//')
+          ssh -i eic_key -o IdentitiesOnly=yes ec2-user@"$HOST" \
+            "sudo docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
