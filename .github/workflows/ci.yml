@@ -23,17 +23,42 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Start ssh-agent and add EC2 key
+      - name: Start ssh-agent and add EC2 RAW key (if provided)
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: |
-            ${{ secrets.EC2_SSH }}
+            ${{ secrets.EC2_SSH_KEY }}
+
+      - name: Add EC2 key from base64 (optional)
+        if: ${{ secrets.EC2_SSH_KEY_B64 != '' }}
+        shell: bash
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY_B64 }}" | base64 -d | ssh-add - >/dev/null
 
       - name: Trust EC2 host key
         run: |
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
           ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
+
+      - name: Show identities in ssh-agent
+        run: |
+          ssh-add -l || (echo "No keys in agent" && exit 1)
+
+      - name: Probe SSH connectivity and user
+        shell: bash
+        run: |
+          set -e
+          for U in "${EC2_USER}" ec2-user ubuntu; do
+            echo "Trying SSH as $U@$EC2_HOST ..."
+            if ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o BatchMode=yes -p 22 "$U@$EC2_HOST" 'echo OK'; then
+              echo "EC2_USER=$U" >> "$GITHUB_ENV"
+              echo "SSH OK as $U"
+              exit 0
+            fi
+          done
+          echo "SSH failed with provided key/user. Likely wrong private key for this instance or wrong user." >&2
+          exit 1
 
       - name: Ensure repo exists or update on EC2
         run: |
@@ -42,7 +67,7 @@ jobs:
           APP_DIR="/opt/app"
           REPO_URI='${{ secrets.REPO_URI }}'
 
-          # На всякий случай: git может быть не установлен
+          # git может отсутствовать на чистом AL2023
           if ! command -v git >/dev/null 2>&1; then
             sudo dnf install -y git
           fi
