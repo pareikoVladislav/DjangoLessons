@@ -27,13 +27,7 @@ jobs:
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: |
-            ${{ secrets.EC2_SSH_KEY }}
-
-      - name: Add EC2 key from base64 (optional)
-        if: ${{ secrets.EC2_SSH_KEY_B64 != '' }}
-        shell: bash
-        run: |
-          echo "${{ secrets.EC2_SSH_KEY_B64 }}" | base64 -d | ssh-add - >/dev/null
+            ${{ secrets.EC2_SSH }}
 
       - name: Trust EC2 host key
         run: |
