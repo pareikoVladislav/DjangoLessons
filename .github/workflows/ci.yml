@@ -81,6 +81,7 @@ jobs:
           DEBUG=False
           SECRET_KEY=${{ secrets.SECRET_KEY }}
           TIME_ZONE=Asia/Tbilisi
+          USE_REMOTE_DB=${{ secrets.USE_REMOTE_DB }}
           DB_NAME=${{ secrets.DB_NAME }}
           DB_USER=${{ secrets.DB_USER }}
           DB_PASSWORD=${{ secrets.DB_PASSWORD }}

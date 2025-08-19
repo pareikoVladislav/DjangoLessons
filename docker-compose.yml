@@ -16,8 +16,6 @@
 #      driver: "json-file"
 #      options:
 #        max-size: "1m"
-version: '3.8'
-
 services:
   db:
     image: mysql:8.0
@@ -26,8 +24,6 @@ services:
       MYSQL_DATABASE: ${DB_NAME}
       MYSQL_USER: ${DB_USER}
       MYSQL_PASSWORD: ${DB_PASSWORD}
-    ports:
-      - "80:8000"
     volumes:
       - db_data:/var/lib/mysql
     healthcheck:
@@ -49,6 +45,8 @@ services:
       && gunicorn core.wsgi:application --access-logfile - --error-logfile - --bind 0.0.0.0:8000"
     volumes:
       - .:/app/
+    ports:
+      - "80:8000"
     depends_on:
       db:
         condition: service_healthy
