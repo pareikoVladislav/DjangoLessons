@@ -43,7 +43,7 @@ jobs:
             --instance-id "${{ secrets.EC2_INSTANCE_ID }}" \
             --availability-zone "${{ steps.az.outputs.AZ }}" \
             --instance-os-user "ec2-user" \
-            --ssh-public-key "fileb://eic_key.pub"
+            --ssh-public-key "$(tr -d '\r' < eic_key.pub)"
 
       - name: Trust EC2 host key (robust)
         run: |
