@@ -168,8 +168,6 @@ jobs:
 
       - name: Deploy backend
         run: |
-          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-
           ssh -i eic_key -o IdentitiesOnly=yes ec2-user@"$HOST" \
           "APP_DIR='${APP_DIR}' \
           DOCKERHUB_USERNAME='${{ secrets.DOCKERHUB_USERNAME }}' \
@@ -185,7 +183,7 @@ jobs:
           test -f docker-compose.yml || { echo "ERROR: docker-compose.yml not found in ${APP_DIR}"; exit 2; }
           test -f .env || echo "WARN: .env not found in ${APP_DIR}"
 
-          echo "${DOCKERHUB_TOKEN}" | docker login -u "${DOCKERHUB_USERNAME}" --password-stdin
+          echo "${DOCKERHUB_READONLY_TOKEN}" | docker login -u "${DOCKERHUB_USERNAME}" --password-stdin
 
           docker compose pull
           docker compose up -d
