@@ -170,7 +170,7 @@ jobs:
         run: |
           echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
-          ssh -i eic_key -o IdentitiesOnly=yes ec2-user@"$HOST" bash -s <<'EOSH'
+          ssh -i eic_key -o IdentitiesOnly=yes ec2-user@"$HOST" "APP_DIR='${APP_DIR}' bash -s" <<'EOSH'
           set -euo pipefail
           cd "${APP_DIR}"
 
