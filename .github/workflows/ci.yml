@@ -44,10 +44,9 @@ jobs:
       - name: Build & tag backend
         run: |
           docker build \
-            -f backend/Dockerfile \
+            -f ./Dockerfile \
             -t docker.io/${DOCKERHUB_NAMESPACE}/${IMAGE_BACKEND}:${{ steps.meta.outputs.release_tag }} \
-            -t docker.io/${DOCKERHUB_NAMESPACE}/${IMAGE_BACKEND}:stable \
-            backend
+            -t docker.io/${DOCKERHUB_NAMESPACE}/${IMAGE_BACKEND}:stable .
 
       - name: Push backend images
         run: |
