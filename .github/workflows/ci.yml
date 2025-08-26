@@ -1,4 +1,4 @@
-name: Deploy to EC2 (via AWS EIC)
+name: CI/CD via DockerHub to EC2 (backend-only)
 
 on:
   push:
@@ -8,16 +8,74 @@ concurrency:
   group: deploy-main
   cancel-in-progress: true
 
+env:
+  DOCKERHUB_NAMESPACE: ${{ secrets.DOCKERHUB_USERNAME }}
+  IMAGE_BACKEND: backend
+
 jobs:
-  deploy:
+  build_and_push:
+    name: Build & Push Docker Image
     runs-on: ubuntu-latest
-    env:
-      APP_DIR: ${{ secrets.APP_DIR }}
+    outputs:
+      release_tag: ${{ steps.meta.outputs.release_tag }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
+        with:
+          fetch-depth: 0
+
+      - name: Compute release tag (git short SHA)
+        id: meta
+        run: |
+          TAG="$(git rev-parse --short HEAD)"
+          echo "release_tag=sha-${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker login (DockerHub)
+        uses: docker/login-action@v3
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build & tag backend
+        run: |
+          docker build \
+            -f backend/Dockerfile \
+            -t docker.io/${DOCKERHUB_NAMESPACE}/${IMAGE_BACKEND}:${{ steps.meta.outputs.release_tag }} \
+            -t docker.io/${DOCKERHUB_NAMESPACE}/${IMAGE_BACKEND}:stable \
+            backend
+
+      - name: Push backend images
+        run: |
+          docker push docker.io/${DOCKERHUB_NAMESPACE}/${IMAGE_BACKEND}:${{ steps.meta.outputs.release_tag }}
+          docker push docker.io/${DOCKERHUB_NAMESPACE}/${IMAGE_BACKEND}:stable
+
+      - name: Security scan (Trivy)
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: docker.io/${{ env.DOCKERHUB_NAMESPACE }}/${{ env.IMAGE_BACKEND }}:${{ steps.meta.outputs.release_tag }}
+          vuln-type: 'os,library'
+          severity: 'HIGH,CRITICAL'
+          exit-code: '1'
+
+  deploy:
+    name: Deploy to EC2 (via AWS EIC)
+    runs-on: ubuntu-latest
+    needs: build_and_push
+    env:
+      APP_DIR: /opt/app/compose
+      RELEASE_TAG: ${{ needs.build_and_push.outputs.release_tag }}
+      EC2_HOST_RAW: ${{ secrets.EC2_HOST }}
+
+    steps:
+      - name: Checkout (to get compose from repo)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -33,7 +91,6 @@ jobs:
                --instance-ids "${{ secrets.EC2_INSTANCE_ID }}" \
                --query 'Reservations[0].Instances[0].Placement.AvailabilityZone' \
                --output text)
-          echo "AZ=$AZ"
           echo "AZ=$AZ" >> $GITHUB_OUTPUT
 
       - name: Push ephemeral SSH key via EC2 Instance Connect
@@ -45,44 +102,49 @@ jobs:
             --instance-os-user "ec2-user" \
             --ssh-public-key "$(tr -d '\r' < eic_key.pub)"
 
-      - name: Trust EC2 host key (robust)
+      - name: Normalize host
         run: |
-          set -euo pipefail
+          HOST=$(printf '%s' "$EC2_HOST_RAW" | tr -d '\r' | awk '{print $1}' | sed 's/^"//; s/"$//')
+          echo "HOST=$HOST" >> $GITHUB_ENV
+
+      - name: Trust EC2 host key
+        run: |
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          RAW="${{ secrets.EC2_HOST }}"
-          HOST=$(printf '%s' "$RAW" | tr -d '\r' | awk '{print $1}' | sed 's/^"//; s/"$//')
           ssh-keyscan -T 10 -H "$HOST" >> ~/.ssh/known_hosts
           IP=$(getent ahostsv4 "$HOST" | awk '/STREAM/ {print $1; exit}') || true
           if [ -n "${IP:-}" ]; then ssh-keyscan -T 10 -H "$IP" >> ~/.ssh/known_hosts || true; fi
           chmod 644 ~/.ssh/known_hosts
 
-      - name: Prepare host (docker/git/rsync, app dir)
+      - name: Prepare host (Docker/Compose + APP_DIR)
         run: |
-          RAW="${{ secrets.EC2_HOST }}"; HOST=$(printf '%s' "$RAW" | tr -d '\r' | awk '{print $1}' | sed 's/^"//; s/"$//')
           ssh -i eic_key -o IdentitiesOnly=yes ec2-user@"$HOST" bash -s <<'EOSH'
           set -euo pipefail
-          sudo systemctl enable --now docker
-          sudo usermod -aG docker ec2-user || true
-          sudo install -d -o ec2-user -g ec2-user -m 775 /opt/app
+
+          if ! command -v docker >/dev/null 2>&1; then
+            sudo dnf install -y docker
+            sudo systemctl enable --now docker
+            sudo usermod -aG docker ec2-user
+            newgrp docker <<<'echo'
+          else
+            sudo systemctl enable --now docker
+            sudo usermod -aG docker ec2-user || true
+          fi
+
+          if ! docker compose version >/dev/null 2>&1; then
+            sudo mkdir -p /usr/local/lib/docker/cli-plugins/
+            sudo curl -SL "https://github.com/docker/compose/releases/download/v2.39.2/docker-compose-linux-x86_64" \
+              -o /usr/local/lib/docker/cli-plugins/docker-compose
+            sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+          fi
+
+          sudo install -d -o ec2-user -g ec2-user -m 775 "${APP_DIR}"
           EOSH
 
-      - name: Rsync project to EC2
+      - name: Create/Update .env on server
         run: |
-          RAW="${{ secrets.EC2_HOST }}"; HOST=$(printf '%s' "$RAW" | tr -d '\r' | awk '{print $1}' | sed 's/^"//; s/"$//')
-          rsync -az --delete \
-            --exclude '.git/' \
-            --exclude '.github/' \
-            --filter='P static/' \
-            -e "ssh -i eic_key -o IdentitiesOnly=yes" \
-            ./ ec2-user@"$HOST":"${{ secrets.APP_DIR }}"/
-
-      - name: Create .env
-        run: |
-          cat > .env <<'EOF'
-          DJANGO_SETTINGS_MODULE=core.settings
-          DEBUG=False
+          ssh -i eic_key -o IdentitiesOnly=yes ec2-user@"$HOST" "cat > ${APP_DIR}/.env" <<'EOFENV'
+          DEBUG=${{ secrets.DEBUG }}
           SECRET_KEY=${{ secrets.SECRET_KEY }}
-          TIME_ZONE=Asia/Tbilisi
           USE_REMOTE_DB=${{ secrets.USE_REMOTE_DB }}
           DB_NAME=${{ secrets.DB_NAME }}
           DB_USER=${{ secrets.DB_USER }}
@@ -90,26 +152,44 @@ jobs:
           DB_HOST=${{ secrets.DB_HOST }}
           DB_PORT=${{ secrets.DB_PORT }}
           ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }}
-          EOF
-      - name: Upload .env
-        run: |
-          RAW="${{ secrets.EC2_HOST }}"; HOST=$(printf '%s' "$RAW" | tr -d '\r' | awk '{print $1}' | sed 's/^"//; s/"$//')
-          scp -i eic_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
-            .env ec2-user@"$HOST":"${{ secrets.APP_DIR }}"/.env
+          EOFENV
 
-      - name: Build and (re)start containers
+      - name: Prepare compose file (inject tags)
         run: |
-          RAW="${{ secrets.EC2_HOST }}"; HOST=$(printf '%s' "$RAW" | tr -d '\r' | awk '{print $1}' | sed 's/^"//; s/"$//')
+          # Берём compose из репозитория
+          cp deploy/docker-compose.yml ./docker-compose.rendered.yml
+
+          # Подставляем конкретные значения (namespace, имя образа, тег)
+          sed -i "s|\${DOCKERHUB_NAMESPACE}|${{ secrets.DOCKERHUB_USERNAME }}|g" docker-compose.rendered.yml
+          sed -i "s|\${IMAGE_BACKEND}|${{ env.IMAGE_BACKEND }}|g" docker-compose.rendered.yml
+          sed -i "s|\${RELEASE_TAG}|${{ env.RELEASE_TAG }}|g" docker-compose.rendered.yml
+
+          # Копируем итоговый файл на сервер
+          scp -i eic_key -o IdentitiesOnly=yes docker-compose.rendered.yml ec2-user@"$HOST":"${APP_DIR}/docker-compose.yml"
+
+      - name: Deploy backend
+        run: |
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
           ssh -i eic_key -o IdentitiesOnly=yes ec2-user@"$HOST" bash -s <<'EOSH'
           set -euo pipefail
-          cd /opt/app
-          sudo docker compose --env-file .env pull
-          sudo docker compose --env-file .env up -d --build
-          sudo docker system prune -f
+          cd "${APP_DIR}"
+
+          docker compose pull
+          docker compose up -d
+          docker compose ps
+
+          # Миграции и статика
+          if docker ps --format '{{.Names}}' | grep -q 'backend'; then
+            B=$(docker ps --format '{{.Names}}' | grep backend | head -n1)
+            docker exec "$B" python manage.py migrate --noinput
+            docker exec "$B" python manage.py collectstatic --noinput
+          fi
+
+          docker image prune -f >/dev/null 2>&1 || true
           EOSH
 
       - name: Show running containers
         run: |
-          RAW="${{ secrets.EC2_HOST }}"; HOST=$(printf '%s' "$RAW" | tr -d '\r' | awk '{print $1}' | sed 's/^"//; s/"$//')
           ssh -i eic_key -o IdentitiesOnly=yes ec2-user@"$HOST" \
-            "sudo docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
+            "docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}'"
