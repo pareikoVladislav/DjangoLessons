@@ -116,7 +116,7 @@ jobs:
 
       - name: Prepare host (Docker/Compose + APP_DIR)
         run: |
-          ssh -i eic_key -o IdentitiesOnly=yes ec2-user@"$HOST" bash -s <<'EOSH'
+          ssh -i eic_key -o IdentitiesOnly=yes ec2-user@"$HOST" "APP_DIR='${APP_DIR}' bash -s" <<'EOSH'
           set -euo pipefail
 
           if ! command -v docker >/dev/null 2>&1; then
