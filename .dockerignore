@@ -1,0 +1,63 @@
+# Игнорируем системные файлы
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.db*
+*.sqlite3
+
+# Игнорируем логи
+*.log*
+logs/
+*.tmp
+
+# Игнорируем локальные среды
+.venv/
+env/
+venv/
+ENV/
+
+# Игнорируем кеши и временные директории
+*.egg-info/
+.eggs/
+dist/
+build/
+*.bak
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Игнорируем Git и CI/CD папки
+.git/
+.gitignore
+.gitattributes
+.github/
+.gitlab-ci.yml
+
+# Исключаем локальные конфиги и секреты
+*.env
+.env.*
+secrets/
+keys/
+*.pem
+
+# Исключаем тесты (если они не нужны в контейнере)
+tests/
+coverage/
+.tox/
+
+# Исключаем статические и медиа-файлы, которые собираются на проде
+staticfiles/
+static/
+media/
+
+# Игнорируем документацию
+docs/
+*.md
+
+# Исключаем IDE
+.idea/
+.vscode/
+*.code-workspace
