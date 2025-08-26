@@ -109,10 +109,10 @@ jobs:
       - name: Trust EC2 host key
         run: |
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          touch ~/.ssh/known_hosts && chmod 644 ~/.ssh/known_hosts
           ssh-keyscan -T 10 -H "$HOST" >> ~/.ssh/known_hosts
           IP=$(getent ahostsv4 "$HOST" | awk '/STREAM/ {print $1; exit}') || true
           if [ -n "${IP:-}" ]; then ssh-keyscan -T 10 -H "$IP" >> ~/.ssh/known_hosts || true; fi
-          chmod 644 ~/.ssh/known_hosts
 
       - name: Prepare host (Docker/Compose + APP_DIR)
         run: |
