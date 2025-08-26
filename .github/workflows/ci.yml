@@ -156,7 +156,7 @@ jobs:
       - name: Prepare compose file (inject tags)
         run: |
           # Берём compose из репозитория
-          cp deploy/docker-compose.yml ./docker-compose.rendered.yml
+          cp ./docker-compose.yml ./docker-compose.rendered.yml
 
           # Подставляем конкретные значения (namespace, имя образа, тег)
           sed -i "s|\${DOCKERHUB_NAMESPACE}|${{ secrets.DOCKERHUB_USERNAME }}|g" docker-compose.rendered.yml
