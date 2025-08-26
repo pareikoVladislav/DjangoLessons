@@ -66,7 +66,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build_and_push
     env:
-      APP_DIR: /opt/app/compose
+      APP_DIR: ${{ secrets.APP_DIR }}
       RELEASE_TAG: ${{ needs.build_and_push.outputs.release_tag }}
       EC2_HOST_RAW: ${{ secrets.EC2_HOST }}
 
